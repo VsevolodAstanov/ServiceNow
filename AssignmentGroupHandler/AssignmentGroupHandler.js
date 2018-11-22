@@ -154,13 +154,13 @@ AssignmentGroupsHandler.prototype.queryRelatedData = function() {
 	return !failQuery;
 }
 
-AssignmentGroupsHandler.prototype.getDataByStr = function(store, str) {
+AssignmentGroupsHandler.prototype.getDataByStr = function(table, str) {
 
 	var q = str.split(",");
 	var res = [];
 
 	for(var i = 0; i < q.length; i++) {
-		res.push(this[store][q[i]]);
+		res.push(this[table][q[i]]);
 	}
 
 	return res;

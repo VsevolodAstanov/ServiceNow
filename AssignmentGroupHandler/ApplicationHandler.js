@@ -45,19 +45,45 @@ function ApplicationHandler() {
 				managed_by: r["Technical Owner"],
 				short_description: r["Description"],
 				rel_business_services: r["Related Business Services"],
-				u_heir2: r["Division"],
-				location: r["Location"]
+				u_hier2: r["Division"],
+				location: r["Location"],
+				company: r["Company"]
 			});
 		}
-
-		gs.info(applications[0].name)
 
 		if(applications.length == 0) {
 			gs.info("Application list is empty");
 			return;
 		}
 
-		_this.queryRelatedData();
+		if(!_this.queryRelatedData())
+			return;
+
+		applications.forEach(function(appl) {
+
+			var applGR = new GlideRecord('cmdb_ci_appl');
+			applGR.initialize();
+			applGR.name = appl.name;
+			applGR.operational_status = appl.operational_status;
+			applGR.support_group = _this.sys_user_group[appl.support_group];
+			applGR.change_control = _this.sys_user_group[appl.change_control];
+			applGR.owned_by = _this.sys_user[appl.owned_by];
+			applGR.managed_by = _this.sys_user[appl.managed_by];
+			applGR.description = appl.description;
+			applGR.u_hier2 = _this.u_org_hierarchy[appl.u_hier2];
+			applGR.location = _this.cmn_location[appl.location];
+			applGR.company = _this.core_company[appl.company];
+
+			//applGR.insert();
+
+			// if(applGR.isValidRecord()) {
+
+			// 	var applID = applGR.getUniqueValue();
+
+			// 	_this.addBSRel(groupID, _this.getDataByStr("sys_user", group.members));
+			// }
+
+		});
 	};
 
 	this.queryRelatedData = function() {
@@ -66,6 +92,7 @@ function ApplicationHandler() {
 		var queryTables = [
 			"sys_user",
 			"cmn_location",
+			"core_company",
 			"sys_user_group",
 			"u_org_hierarchy"
 		];
@@ -78,8 +105,9 @@ function ApplicationHandler() {
 		applications.forEach(function(appl) {
 			queryStore.sys_user += appl.owned_by + "," + appl.managed_by + ",";
 			queryStore.cmn_location += appl.location + ",";
+			queryStore.core_company += appl.company + ",";
 			queryStore.sys_user_group += appl.support_group + "," + appl.change_control + ",";
-			queryStore.u_org_hierarchy += appl.u_heir2 + ",";
+			queryStore.u_org_hierarchy += appl.u_hier2 + ",";
 		});
 
 		gs.info(queryStore.cmn_location);
@@ -124,10 +152,8 @@ function ApplicationHandler() {
 
 		var failQuery;
 		for (var qu in queryStore) {
-			gs.info(typeof queryStore[qu]);
-			if(queryStore[qu].split(",").length > 0) {
+			if(queryStore[qu].length > 0) {
 				gs.info("Wrong values on table : " + qu);
-				gs.info(queryStore[qu].length);
 				gs.info(queryStore[qu]);
 				failQuery = true;
 			}
