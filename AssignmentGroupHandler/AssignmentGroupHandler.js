@@ -59,7 +59,9 @@ AssignmentGroupsHandler.prototype.createGroups = function() {
 		return;
 	}
 
-	this.queryRelatedData();
+	if(!this.queryRelatedData()){
+		return;
+	}
 
 	this.groups.forEach(function(group) {
 
@@ -86,46 +88,70 @@ AssignmentGroupsHandler.prototype.createGroups = function() {
 
 AssignmentGroupsHandler.prototype.queryRelatedData = function() {
 
-	this.sys_user = {};
-	this.cmn_location = {};
-	this.sys_user_role = {};
-	this.sys_user_group_type = {};
-	this.core_company = {};
-
-	var queryStore = {
-		"sys_user": "",
-		"cmn_location": "",
-		"sys_user_role": "",
-		"sys_user_group_type": "",
-		"core_company": ""
-	};
-
 	var _this = this;
+	var queryStore = {};
+	
+	//Query Tables MUST contains field "Name"
+	var queryTables = [
+		"sys_user",
+		"cmn_location",
+		"sys_user_role",
+		"sys_user_group_type",
+		"core_company"
+	];
+
+	for(ql = 0; ql < queryTables.length; ql++) {
+		_this[queryTables[ql]] = {};
+		queryStore[queryTables[ql]] = "";
+	}
 
 	this.groups.forEach(function(group) {
-		queryStore.sys_user += "," + group.manager + "," + group.members;
-		queryStore.cmn_location += "," + group.location;
-		queryStore.sys_user_role += "," + group.roles;
-		queryStore.sys_user_group_type += "," + group.types;
-		queryStore.core_company += "," + group.company;
+		queryStore.sys_user += group.manager + "," + group.members + ",";
+		queryStore.cmn_location += group.location + ",";
+		queryStore.sys_user_role += group.roles + ",";
+		queryStore.sys_user_group_type += group.types + ",";
+		queryStore.core_company += group.company + ",";
 	});
+
+	for (var q in queryStore) {
+		queryStore[q] = queryStore[q].split(",").filter(Boolean).filter(function(value, index, self) { 
+		    return self.indexOf(value) === index;
+		}).join(',');
+	}
 
 	var glideQueryHandler = function(table, q) {
 		var gr = new GlideRecord(table);
 		gr.addActiveQuery();
 		gr.addQuery("name", "IN", q);
-		if(table == "sys_user")
+		if(table == "sys_user"){
 			gr.addNotNullQuery("email");
+			gr.addEncodedQuery("emailNOT LIKEa-")
+		}
 		gr.query();
 
 		while(gr.next()) {
 			_this[table][gr.name.getDisplayValue()] = gr.getUniqueValue();
+			var arrQuery = queryStore[table].split(",");
+			arrQuery.splice(arrQuery.indexOf(gr.name.getDisplayValue()), 1);
+			queryStore[table] = arrQuery.join(",");
 		}
 	}
 
 	for(var q in queryStore) {
 		glideQueryHandler(q, queryStore[q])
 	}
+
+
+	var failQuery;
+	for (var q in queryStore) {
+		if(queryStore[q].length > 0) {
+			gs.info("Wrong values on table : " + q);
+			gs.info(queryStore[q]);
+			failQuery = true;
+		}
+	}
+
+	return !failQuery;
 }
 
 AssignmentGroupsHandler.prototype.getDataByStr = function(store, str) {
