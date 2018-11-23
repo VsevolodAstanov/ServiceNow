@@ -1,4 +1,4 @@
-function ApplicationHandler() {
+function Application() {
 
 	var _this = this;
 	var applications = [];
@@ -74,7 +74,7 @@ function ApplicationHandler() {
 			applGR.location = _this.cmn_location[appl.location];
 			applGR.company = _this.core_company[appl.company];
 
-			//applGR.insert();
+			applGR.insert();
 
 			// if(applGR.isValidRecord()) {
 
@@ -161,10 +161,6 @@ function ApplicationHandler() {
 
 		return !failQuery;
 	};
-
-	this.removeSpaces = function(str) {
-		return str.replace(/\s+(?!,\s,)\s+|(?!\s+),\s+|,/g,",");
-	};
 }
 
-new ApplicationHandler().createApplications();
+new Application().createApplications();

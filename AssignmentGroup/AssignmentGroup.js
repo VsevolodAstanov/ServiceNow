@@ -1,5 +1,4 @@
-function AssignmentGroupsHandler() {
-
+function AssignmentGroups() {
 	this.groups = [];
 	this.ps = new sn_impex.GlideExcelParser();
 	this.attachment = new GlideSysAttachment();
@@ -16,11 +15,11 @@ function AssignmentGroupsHandler() {
 	this.attStr = this.attachment.getContentStream(ga.getUniqueValue());
 }
 
-AssignmentGroupsHandler.prototype.removeSpaces = function(str) {
+AssignmentGroups.prototype.removeSpaces = function(str) {
 	return str.replace(/\s+(?!,\s,)\s+|(?!\s+),\s+|,/g,",");
 }
 
-AssignmentGroupsHandler.prototype.createGroups = function() {
+AssignmentGroups.prototype.createGroups = function() {
 
 	var _this = this;
 
@@ -86,7 +85,7 @@ AssignmentGroupsHandler.prototype.createGroups = function() {
 	});
 }
 
-AssignmentGroupsHandler.prototype.queryRelatedData = function() {
+AssignmentGroups.prototype.queryRelatedData = function() {
 
 	var _this = this;
 	var queryStore = {};
@@ -154,7 +153,7 @@ AssignmentGroupsHandler.prototype.queryRelatedData = function() {
 	return !failQuery;
 }
 
-AssignmentGroupsHandler.prototype.getDataByStr = function(table, str) {
+AssignmentGroups.prototype.getDataByStr = function(table, str) {
 
 	var q = str.split(",");
 	var res = [];
@@ -166,7 +165,7 @@ AssignmentGroupsHandler.prototype.getDataByStr = function(table, str) {
 	return res;
 }
 
-AssignmentGroupsHandler.prototype.addUserRel = function(id, members) {
+AssignmentGroups.prototype.addUserRel = function(id, members) {
 
 	if(!id)
 		return;
@@ -180,7 +179,7 @@ AssignmentGroupsHandler.prototype.addUserRel = function(id, members) {
 	}
 }
 
-AssignmentGroupsHandler.prototype.addRoleRel = function(id, roles) {
+AssignmentGroups.prototype.addRoleRel = function(id, roles) {
 
 	if(!id)
 		return;
@@ -194,4 +193,4 @@ AssignmentGroupsHandler.prototype.addRoleRel = function(id, roles) {
 	}
 }
 
-new AssignmentGroupsHandler().createGroups();
+new AssignmentGroups().createGroups();
