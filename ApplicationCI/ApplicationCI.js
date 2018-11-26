@@ -47,7 +47,8 @@ function Application() {
 				rel_business_services: r["Related Business Services"],
 				u_hier2: r["Division"],
 				location: r["Location"],
-				company: r["Company"]
+				company: r["Company"],
+				business_service: r["Related Business Services"]
 			});
 		}
 
@@ -76,12 +77,9 @@ function Application() {
 
 			applGR.insert();
 
-			// if(applGR.isValidRecord()) {
-
-			// 	var applID = applGR.getUniqueValue();
-
-			// 	_this.addBSRel(groupID, _this.getDataByStr("sys_user", group.members));
-			// }
+			if(applGR.isValidRecord()) {
+				_this.addBSRelation(applGR.getUniqueValue(), _this.cmdb_ci_service[appl.business_service]);
+			}
 
 		});
 	};
@@ -94,7 +92,8 @@ function Application() {
 			"cmn_location",
 			"core_company",
 			"sys_user_group",
-			"u_org_hierarchy"
+			"u_org_hierarchy",
+			"cmdb_ci_service"
 		];
 
 		for(ql = 0; ql < queryTables.length; ql++) {
@@ -108,6 +107,7 @@ function Application() {
 			queryStore.core_company += appl.company + ",";
 			queryStore.sys_user_group += appl.support_group + "," + appl.change_control + ",";
 			queryStore.u_org_hierarchy += appl.u_hier2 + ",";
+			queryStore.cmdb_ci_service += appl.business_service + ",";
 		});
 
 		gs.info(queryStore.cmn_location);
@@ -139,10 +139,8 @@ function Application() {
 
 				_this[table][nameKey] = gr.getUniqueValue();
 				var arrQuery = queryStore[table].split(",");
-				gs.info(arrQuery);
 				arrQuery.splice(arrQuery.indexOf(nameKey), 1);
 				queryStore[table] = arrQuery.join(",");
-				gs.info(arrQuery);
 			}
 		}
 
@@ -160,6 +158,15 @@ function Application() {
 		}
 
 		return !failQuery;
+	};
+
+	this.addBSRelation = function(child, parent) {
+		var relGR = new GlideRecord('cmdb_rel_ci');
+		relGR.initialize();
+		relGR.child = child;
+		relGR.parent  = parent;
+		relGR.type = "Depends on::Used by";
+		relGR.insert();
 	};
 }
 

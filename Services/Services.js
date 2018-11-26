@@ -67,20 +67,22 @@ function Services(service_type) {
 
 			var servicesGR = new GlideRecord(service_type);
 
-			var update;
-
-			if(_this.duplicates.length > 0) {
-				for(var d = 0; d < _this.duplicates.length; d++) {
-					if(_this.duplicates[d].name == serv.name) {
-						servicesGR.get(_this.duplicates[d].id);
-						_this.duplicates.splice(d, 1);
-						gs.info("Update Service :" + serv.name);
-						update = true;
+			var isInsert = function() {
+				if(_this.duplicates.length > 0) {
+					for(var d = 0; d < _this.duplicates.length; d++) {
+						if(_this.duplicates[d].name == serv.name) {
+							servicesGR.get(_this.duplicates[d].id);
+							_this.duplicates.splice(d, 1);
+							gs.info("Update Service :" + serv.name);
+							return false;
+						}
 					}
 				}
-			}
 
-			if(!update) {
+				return true;
+			};
+
+			if(isInsert()) {
 				servicesGR.initialize();
 				servicesGR.name = serv.name;
 
@@ -104,7 +106,7 @@ function Services(service_type) {
 			if(serv.company)
 				servicesGR.company = _this.core_company[serv.company];
 
-			//servicesGR.update();
+			servicesGR.update();
 		});
 	};
 
@@ -126,8 +128,6 @@ function Services(service_type) {
 			_this[queryTables[ql]] = {};
 			queryStore[queryTables[ql]] = "";
 		}
-
-		gs.info(queryStore.sys_user);
 
 		services.forEach(function(serv) {
 			queryStore[service_type] += serv.name + ",";
@@ -168,12 +168,12 @@ function Services(service_type) {
 					});
 				}
 
-				//_this[table][name] = id;
+				_this[table][name] = id;
 
 				//Avoid duplicate values
-				// var arrQuery = queryStore[table].split(",");
-				// arrQuery.splice(arrQuery.indexOf(name), 1);
-				// queryStore[table] = arrQuery.join(",");
+				var arrQuery = queryStore[table].split(",");
+				arrQuery.splice(arrQuery.indexOf(name), 1);
+				queryStore[table] = arrQuery.join(",");
 			}
 		};
 
