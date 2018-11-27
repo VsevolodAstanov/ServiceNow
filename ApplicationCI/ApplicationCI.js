@@ -6,7 +6,7 @@ function Application() {
 	var attachment = new GlideSysAttachment();
 	var ga = new GlideRecord('sys_attachment');
 	ga.addQuery('table_name', 'sys_update_set'); //Table name where file is attached
-	ga.addQuery('table_sys_id', '1506197edb75234009351bfa4b961951'); //Record sys id where file is attached
+	ga.addQuery('table_sys_id', 'e6472c0d1b4e6380148ba9bfbd4bcb35'); //Record sys id where file is attached
 	ga.query();
 
 	if(!ga.next()){
@@ -44,12 +44,13 @@ function Application() {
 				owned_by: r["Business Owner"],
 				managed_by: r["Technical Owner"],
 				short_description: r["Description"],
-				rel_business_services: r["Related Business Services"],
 				u_hier2: r["Division"],
 				location: r["Location"],
 				company: r["Company"],
 				business_service: r["Related Business Services"]
 			});
+
+			gs.info(r["Company"]);
 		}
 
 		if(applications.length == 0) {
@@ -78,7 +79,7 @@ function Application() {
 			applGR.insert();
 
 			if(applGR.isValidRecord()) {
-				_this.addBSRelation(applGR.getUniqueValue(), _this.cmdb_ci_service[appl.business_service]);
+				_this.addBSRelation(applGR.getUniqueValue(), appl.business_service);
 			}
 
 		});
@@ -109,8 +110,6 @@ function Application() {
 			queryStore.u_org_hierarchy += appl.u_hier2 + ",";
 			queryStore.cmdb_ci_service += appl.business_service + ",";
 		});
-
-		gs.info(queryStore.cmn_location);
 
 		//Remove Duplicates
 		for (var q in queryStore) {
@@ -160,13 +159,18 @@ function Application() {
 		return !failQuery;
 	};
 
-	this.addBSRelation = function(child, parent) {
-		var relGR = new GlideRecord('cmdb_rel_ci');
-		relGR.initialize();
-		relGR.child = child;
-		relGR.parent  = parent;
-		relGR.type = "Depends on::Used by";
-		relGR.insert();
+	this.addBSRelation = function(child, parents) {
+		parents = parents.split(",");
+		for(var p = 0; p < parents.length; p++) {
+
+			gs.info(parents[p]);
+			var relGR = new GlideRecord('cmdb_rel_ci');
+			relGR.initialize();
+			relGR.child = child;
+			relGR.parent  = _this.cmdb_ci_service[parents[p]];
+			relGR.type = "1a9cb166f1571100a92eb60da2bce5c5"; //Used By: (Child)
+			relGR.insert();
+		}
 	};
 }
 

@@ -7,7 +7,7 @@ function Services(service_type) {
 	var attachment = new GlideSysAttachment();
 	var ga = new GlideRecord('sys_attachment');
 	ga.addQuery('table_name', 'sys_update_set'); //Table name where file is attached
-	ga.addQuery('table_sys_id', '1506197edb75234009351bfa4b961951'); //Record sys id where file is attached
+	ga.addQuery('table_sys_id', 'e6472c0d1b4e6380148ba9bfbd4bcb35'); //Record sys id where file is attached
 	ga.query();
 
 	if(!ga.next()){
