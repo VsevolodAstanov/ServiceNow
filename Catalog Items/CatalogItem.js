@@ -36,6 +36,7 @@ function CatalogItem() {
 			self._getVariableTypes();
 			self._parseFormVariables();
 			self._defineVariableOrder();
+			self._createVariables(id);
 
 		} catch(err) {
 			gs.info("Error: " + err);
@@ -99,29 +100,93 @@ function CatalogItem() {
 			throw "Variable list is empty";
 	};
 
-	this._createVariables = function() {
+	this._createVariables = function(id) {
 
+		self.variables.forEach(function(v) {
+			// gs.info("Variable: " + v.question_text);
+			// gs.info("Unique Value: " + v.name);
+			// gs.info("Help Text: " + v.help_text);
+			// gs.info("Type: " + v.type);
+			// gs.info("Mandatory : " + v.mandatory);
+			// gs.info("Choices: " + v.choices);
+			// gs.info("Order: " + v.order);
+			// gs.info("\n");
+
+			var variableGR = new GlideRecord('item_option_new');
+			variableGR.initialize();
+			variableGR.active = true;
+			variableGR.cat_item = id;
+			variableGR.question_text = v.question_text;
+			variableGR.name = v.name;
+			variableGR.order = v.order;
+			variableGR.show_help = v.help_text ? true : false;
+			variableGR.help_text = v.help_text;
+			variableGR.type = v.type;
+			variableGR.mandatory = v.mandatory;
+
+			switch(v.type) {
+				case self.VARIABLE_TYPES["macro"]:
+					variableGR.macro = self._createMacro(v.name, v.choices);
+					break;
+
+				case self.VARIABLE_TYPES["containerstart"]:
+					variableGR.display_title = true;
+					variableGR.layout = "2across";
+					break;
+
+				case self.VARIABLE_TYPES["selectbox"]:
+					variableGR.include_none = true;
+					break;
+
+				case self.VARIABLE_TYPES["multiplechoice"]:
+					variableGR.include_none = true;
+					break;
+
+				case self.VARIABLE_TYPES["reference"]:
+					variableGR.reference = v.choices[0];
+					variableGR.reference_qual_condition = v.choices[1];
+					break;
+			}
+
+			var varSysID = variableGR.insert();
+			if(variableGR.isValidRecord() && self._isMultiChoiceBox(v.type) && v.choices.length > 0){
+				self._createChoices(v.choices, varSysID);
+			}
+		});
 	};
 
-	this._createChoices = function() {
-
+	this._createChoices = function(choices, id) {
+		choices.forEach(function(choice) {
+			var choicesGR = new GlideRecord('question_choice');
+			choicesGR.initialize();
+			choicesGR.question = id;
+			choicesGR.order = choice.order;
+			choicesGR.text = choice.text;
+			choicesGR.value = choice.value;
+			choicesGR.insert();
+		});
 	};
 
 	this._defineVariableOrder = function() {
 
 		var section = false;
+		var box = false;
 		var order = 0;
+		var checkbox = self.VARIABLE_TYPES["checkbox"];
+		var cont_start = self.VARIABLE_TYPES["containerstart"];
+		var cont_end = self.VARIABLE_TYPES["containerend"];
 
 		self.variables.forEach(function(v, index) {
 
-			if(v.type == self.VARIABLE_TYPES["checkbox"]) {
+			if(v.type == checkbox) {
+				box = true;
 				v.order = (order += self.CHECKBOX_ORDER);
 				return;
 			}
 
-			if(section == true) {
+			if(!box && section == true) {
 				v.order = (order += self.CONTAINER_ORDER);
-				if(v.type == self.VARIABLE_TYPES["containerend"])
+				if(v.type == cont_end)
 					section = false;
 				return;
 			}
@@ -129,19 +194,10 @@ function CatalogItem() {
 			order = (Math.ceil((order + 1)/100)*100);
 			v.order = order;
 
-			if(v.type == self.VARIABLE_TYPES["containerstart"])
-				section = true;
-		});
+			box = false;
 
-		self.variables.forEach(function(v) {
-			gs.info("Variable: " + v.question_text);
-			gs.info("Unique Value: " + v.name);
-			gs.info("Help Text: " + v.help_text);
-			gs.info("Type: " + v.type);
-			gs.info("Mandatory : " + v.mandatory);
-			gs.info("Choices: " + v.choices);
-			gs.info("Order: " + v.order);
-			gs.info("\n");
+			if(v.type == cont_start)
+				section = true;
 		});
 	};
 
@@ -149,7 +205,6 @@ function CatalogItem() {
 
 		var re = /(_$|_[a-z0-9]+$)/g;
 		var full = val;
-		var uniqueWord;
 		var del;
 
 		//Additional suffix implemented instead of throw exception.
@@ -168,7 +223,6 @@ function CatalogItem() {
 		val = "u_" + val;
 
 		if(val.length > 30) {
-			uniqueWord = val.match(re)[0];
 			val = val.substring(0, 30);
 			del = re.exec(val);
 			val = val.substring(0, del.index);
@@ -177,17 +231,15 @@ function CatalogItem() {
 		val = val.replace(/_$/, "");
 		
 		if(gl) {
-
-			var s = 2;
-			var getUniqueKey = function(val) {
-
-				if(self._uniqueKeyContainer.indexOf(val) >= 0) {
-
-					return getUniqueKey(val+=s);
+			var s = 1;
+			var getUniqueKey = function(k) {
+				if(self._uniqueKeyContainer.indexOf(k) >= 0) {
+					s++;
+					k = (!isNaN(k.slice(-1)) ? k.replace(/\d+$/,s) : k + "_" + s);
+					return getUniqueKey(k);
 				}
-
-				return val;
-			}
+				return k;
+			};
 
 			val = getUniqueKey(val);
 
@@ -202,35 +254,34 @@ function CatalogItem() {
 		if(!choices) 
 			return [];
 
-		switch(type) {
-			case self.VARIABLE_TYPES["macro"]:
-				return choices;
+		if(type == self.VARIABLE_TYPES["macro"])
+			return String(choices);
 
-			case self.VARIABLE_TYPES["reference"]:
-				choices = self._splitChoices(choices);
-				return {
-					"table": choices[0],
-					"query": choices[1]
-				};
-
-			default:
-				choices = self._splitChoices(choices);
-				var choice_text;
-				var v = 0;
-				while(v < choices.length) {
-					choice_text = choices[v].replace(/[^A-Za-z0-9_@\.,()\-\s]+/g, "");
-					choice_text = choice_text.replace(/^\s+/,"");
-					choice_text == "" ? choices.splice(v, 1) : choices.splice(v, 1, {
-						"text": choice_text,
-						"value": self._getUniqueValue(choice_text),
-						"order": (v+1)*100
-					});
-
-					v++;
-				}
-
-				return choices;
+		if(type == self.VARIABLE_TYPES["reference"]) {
+			choices = self._splitChoices(choices);
+			return [choices[0], choices[1]];
 		}
+
+		if(self._isMultiChoiceBox(type)) {
+			choices = self._splitChoices(choices);
+			var choice_text;
+			var v = 0;
+			while(v < choices.length) {
+				choice_text = choices[v].replace(/[^A-Za-z0-9_@\.,()\-\s]+/g, "");
+				choice_text = choice_text.replace(/^\s+/,"");
+				choice_text == "" ? choices.splice(v, 1) : choices.splice(v, 1, {
+					"text": choice_text,
+					"value": self._getUniqueValue(choice_text),
+					"order": (v+1)*100
+				});
+
+				v++;
+			}
+
+			return choices;
+		}
+
+		return [];
 	};
 
 	this._parseDependency = function() {
@@ -245,6 +296,7 @@ function CatalogItem() {
 		varTypeGR.addQuery("inactive", "false");
 		varTypeGR.addQuery("element", "type");
 		varTypeGR.addQuery("language", "en");
+		varTypeGR.orderBy("value");
 		varTypeGR.query();
 		while(varTypeGR.next()) {
 			l = varTypeGR.getValue('label').toLowerCase().replace(/\W+/g, "");
@@ -272,6 +324,18 @@ function CatalogItem() {
 	this._splitChoices = function(choices) {
 		return choices.replace(/\n/g, "--->>>" ).split("--->>>");
 	};
+
+	this._isMultiChoiceBox = function(type) {
+
+		var answer = false;
+
+		Object.keys(self.VARIABLE_TYPES).forEach(function(t) {
+			if(self.VARIABLE_TYPES[t] == type && (t.indexOf("box") >= 0 || t.indexOf("choice") >= 0))
+				return (answer = true);
+		});
+
+		return answer;
+	}
 }
 
 
