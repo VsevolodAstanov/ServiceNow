@@ -63,6 +63,17 @@ function CatalogItem() {
 			mandatory = r["Mandatory"] ? (r["Dependency"] ? false : true) : false;
 			choices = self._parseChoices(type, r["Values for fields"]);
 
+			// choices.forEach(function(c) {
+			// 	gs.info("Variable: " + c.question_text);
+			// 	gs.info("Unique Value: " + v.name);
+			// 	gs.info("Help Text: " + v.help_text);
+			// 	gs.info("Type: " + v.type);
+			// 	gs.info("Mandatory : " + v.mandatory);
+			// 	gs.info("Choices: " + v.choices);
+			// 	gs.info("Order: " + v.order);
+			// 	gs.info("\n");
+			// });
+
 			self.variables.push({
 				question_text: r["Question"],
 				name: name,
@@ -75,14 +86,15 @@ function CatalogItem() {
 		}
 
 		//Parse Chechbox Choices and define them as Variables
-		self.variables.forEach(function(variable, index) {
+		for (var gv = 0; gv < self.variables.length; gv++) {
+			var variable = self.variables[gv];
 			
 			if(variable.type == self.VARIABLE_TYPES["checkbox"] && variable.choices.length > 0) {
 				variable.type = self.VARIABLE_TYPES["label"];
 
 				variable.choices.forEach(function(choice, i) {
 
-					self.variables.splice(index+1, 0, {
+					self.variables.splice(gv+i+1, 0, {
 						question_text: choice.text,
 						name: self._getUniqueValue(choice.text, true),
 						help_text: "",
@@ -94,7 +106,7 @@ function CatalogItem() {
 
 				variable.choices = [];
 			}
-		});
+		}
 
 		if(self.variables.length == 0)
 			throw "Variable list is empty";
@@ -124,28 +136,21 @@ function CatalogItem() {
 			variableGR.type = v.type;
 			variableGR.mandatory = v.mandatory;
 
-			switch(v.type) {
-				case self.VARIABLE_TYPES["macro"]:
-					variableGR.macro = self._createMacro(v.name, v.choices);
-					break;
+			if(v.type == self.VARIABLE_TYPES["macro"])
+				variableGR.macro = self._createMacro(v.name, v.choices);
 
-				case self.VARIABLE_TYPES["containerstart"]:
-					variableGR.display_title = true;
-					variableGR.layout = "2across";
-					break;
+			if(v.type == self.VARIABLE_TYPES["containerstart"]) {
+				variableGR.display_title = true;
+				variableGR.layout = "2across";
+			}
 
-				case self.VARIABLE_TYPES["selectbox"]:
-					variableGR.include_none = true;
-					break;
+			if(v.type == self.VARIABLE_TYPES["reference"]) {
+				variableGR.reference = v.choices[0];
+				variableGR.reference_qual_condition = v.choices[1];
+			}
 
-				case self.VARIABLE_TYPES["multiplechoice"]:
-					variableGR.include_none = true;
-					break;
-
-				case self.VARIABLE_TYPES["reference"]:
-					variableGR.reference = v.choices[0];
-					variableGR.reference_qual_condition = v.choices[1];
-					break;
+			if(self._isMultiChoiceBox(v.type)) {
+				variableGR.include_none = true;
 			}
 
 			var varSysID = variableGR.insert();
@@ -339,4 +344,4 @@ function CatalogItem() {
 }
 
 
-new CatalogItem().createDefinitions("a61f69521b826700cd6298efbd4bcba3");
+new CatalogItem().createDefinitions("0879b3ec1beaa3803e3c76e1dd4bcbd2");
