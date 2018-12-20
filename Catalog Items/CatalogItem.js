@@ -223,8 +223,7 @@ function CatalogItem() {
 		// }
 		
 		val = val.toLowerCase();
-		val = val.replace(/\s+/g, "_");
-		val = val.replace(/\W+/g, "");
+		val = val.replace(/\W+/g, "_");
 		val = "u_" + val;
 
 		if(val.length > 30) {
