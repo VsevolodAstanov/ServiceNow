@@ -1,4 +1,4 @@
-function CatalogItem() {
+function CatalogItem(id) {
 
 	var self = this;
 	var ps = new sn_impex.GlideExcelParser();
@@ -14,6 +14,7 @@ function CatalogItem() {
 	}
 
 	this.variables = [];
+	this.dependency = [];
 	this._uniqueKeyContainer = [];
 	this.VARIABLE_TYPES = {};
 	this.CONTAINER_ORDER = 50;
@@ -21,7 +22,7 @@ function CatalogItem() {
 
 	var attStr = attachment.getContentStream(ga.getUniqueValue());
 
-	this.createDefinitions = function(id) {
+	this.createDefinitions = function() {
 
 		try {
 			if(!id)			
@@ -36,7 +37,9 @@ function CatalogItem() {
 			self._getVariableTypes();
 			self._parseFormVariables();
 			self._defineVariableOrder();
-			self._createVariables(id);
+			self._createVariables();
+
+			self._uniqueKeyContainer = [];
 
 		} catch(err) {
 			gs.info("Error: " + err);
@@ -112,7 +115,7 @@ function CatalogItem() {
 			throw "Variable list is empty";
 	};
 
-	this._createVariables = function(id) {
+	this._createVariables = function() {
 
 		self.variables.forEach(function(v) {
 			// gs.info("Variable: " + v.question_text);
@@ -136,17 +139,20 @@ function CatalogItem() {
 			variableGR.type = v.type;
 			variableGR.mandatory = v.mandatory;
 
-			if(v.type == self.VARIABLE_TYPES["macro"])
-				variableGR.macro = self._createMacro(v.name, v.choices);
+			switch(v.type) {
+				case self.VARIABLE_TYPES["macro"]:
+					variableGR.macro = self._createMacro(v.name, v.choices);
+					break;
 
-			if(v.type == self.VARIABLE_TYPES["containerstart"]) {
-				variableGR.display_title = true;
-				variableGR.layout = "2across";
-			}
+				case self.VARIABLE_TYPES["containerstart"]:
+					variableGR.layout = v.choices[0];
+					variableGR.display_title = (v.choices[1] ? true : false);
+					break;
 
-			if(v.type == self.VARIABLE_TYPES["reference"]) {
-				variableGR.reference = v.choices[0];
-				variableGR.reference_qual_condition = v.choices[1];
+				case self.VARIABLE_TYPES["reference"]:
+					variableGR.reference = v.choices[0];
+					variableGR.reference_qual_condition = v.choices[1];
+					break;
 			}
 
 			if(self._isMultiChoiceBox(v.type)) {
@@ -266,6 +272,11 @@ function CatalogItem() {
 			return [choices[0], choices[1]];
 		}
 
+		if(type == self.VARIABLE_TYPES["containerstart"]) {
+			choices = self._splitChoices(choices);
+			return [choices[0], choices[1]];
+		}
+
 		if(self._isMultiChoiceBox(type)) {
 			choices = self._splitChoices(choices);
 			var choice_text;
@@ -286,10 +297,6 @@ function CatalogItem() {
 		}
 
 		return [];
-	};
-
-	this._parseDependency = function() {
-
 	};
 
 	this._getVariableTypes = function() {
@@ -339,8 +346,125 @@ function CatalogItem() {
 		});
 
 		return answer;
-	}
+	};
+
+	this.createPolicy = function() {
+		try {
+			if(!id)			
+				throw "Catalog Item ID is not defined";
+
+			var catItemGR = new GlideRecord('sc_cat_item');
+			catItemGR.get(id);
+
+			if(!catItemGR.isValidRecord())			
+				throw "Catalog Item does not exist";
+
+			self._parseDependency();
+			self._createDependency();
+
+		} catch(err) {
+			gs.info("Error: " + err);
+		}
+	};
+
+	this._parseDependency = function() {
+		ps.setSheetName("Form"); // XSLX Tab name
+		ps.parse(attStr);
+
+		var r,
+			name,
+			dependency,
+			listName = [],
+			keyContainer = {};
+
+		while(ps.next()) {
+			r = ps.getRow();
+			name = self._getUniqueValue(r["Question"], true);
+			query = r["Dependency"];
+			mandatory = r["Mandatory"];
+
+			if(query) {
+				self.dependency.push({
+					name: name,
+					query: query,
+					mandatory: mandatory,
+				});
+
+				listName.push(name);
+			}
+		}
+
+		var variableGR = new GlideRecord('item_option_new');
+		variableGR.addQuery('name', 'IN', listName.join(","));
+		variableGR.addQuery('cat_item', id);
+		variableGR.query();
+		while(variableGR.next()) {
+			keyContainer[variableGR.name] = variableGR.getUniqueValue();
+		}
+
+		self.UIPolicyList = (function() {
+			var l = {};
+			
+			self.dependency.forEach(function(dep) {
+
+				var policyID = dep.query;
+				var pa = {};
+
+				if(!l[policyID])
+					l[policyID] = [];
+				
+				pa[dep["name"]] = keyContainer[dep.name];
+				pa.mandatory = (dep.mandatory ? "true" : "ignore");
+				// pa.visible = dep.visible;
+				// pa.readOnly = dep.readOnly;
+
+				l[policyID].push(pa);
+			});
+
+			return l;
+		})();
+	};
+
+	this._createDependency = function() {
+
+		if(!self.UIPolicyList)
+			throw "UI Policies are not required";
+
+		for(var i in self.UIPolicyList) {
+
+			var policyGR = new GlideRecord('catalog_ui_policy');
+			policyGR.initialize();
+			policyGR.setValue("active", true);
+			policyGR.setValue("applies_to", "item");
+			policyGR.setValue("catalog_item", id);
+			policyGR.setValue("short_description", i);
+			policyGR.setValue("applies_catalog", true);
+			policyGR.setValue("applies_sc_task", true);
+			policyGR.setValue("applies_req_item", true);
+			policyGR.setValue("on_load", true);
+			policyGR.setValue("reverse_if_false", true);
+			policyGR.setValue("order", 100);
+			var policyID = policyGR.insert();
+
+			self.UIPolicyList[i].forEach(function(p){
+				var name = Object.keys(p)[0];
+
+				var policyActionGR = new GlideRecord("catalog_ui_policy_action");
+				policyActionGR.initialize();
+				policyActionGR.setValue("catalog_item", id);
+				policyActionGR.setValue("variable", name);
+				policyActionGR.setValue("catalog_variable", "IO:" + p[name]);
+				policyActionGR.setValue("visible", "true");
+				policyActionGR.setValue("mandatory", p.mandatory);
+				policyActionGR.setValue("disabled", "ignore");
+				policyActionGR.setValue("ui_policy", policyID);
+				policyActionGR.insert();
+			});
+		}
+
+	};
 }
 
 
-new CatalogItem().createDefinitions("0879b3ec1beaa3803e3c76e1dd4bcbd2");
+var catItemHandler = new CatalogItem("a61f69521b826700cd6298efbd4bcba3");
+catItemHandler.createPolicy();
