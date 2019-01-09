@@ -1,22 +1,32 @@
 var adminID = gs.getUserID();
 
 //User ID
-GlideImpersonate().impersonate(); 
+GlideImpersonate().impersonate("bf6ad3446f877600cbcf77131c3ee447"); 
 
 //atalog Item list
 var names = [];
 
 var itemGR = new GlideRecord('sc_cat_item');
-itemGR.addActiveQuery();
-itemGR.orderBy("name", 'IN', names.join(','));
+//itemGR.addActiveQuery();
+itemGR.addEncodedQuery("type!=bundle^sys_class_name!=sc_cat_item_guide^type!=package^sys_class_name!=sc_cat_item_content^sys_class_name!=sc_cat_item_producer^active=true");
+itemGR.orderBy("name");
 itemGR.query();
 
-gs.info("Count of items: " + itemGR.getRowCount() + "\n");
+var count = 0;
 
 while(itemGR.next()) {
 
-	gs.info(itemGR.name.getDisplayValue());
-	gs.info("Visible: " + new sn_sc.CatItem(itemGR.getUniqueValue()).canView() + "\n");
+	var gr = new GlideRecord('sc_category_user_criteria_mtom');
+	gr.addQuery('sc_category', itemGR.getValue('category'));
+	gr.query();
+
+	if(new sn_sc.CatItem(itemGR.getUniqueValue()).canView() == true && !gr.hasNext()) {
+		gs.info(itemGR.name.getDisplayValue());
+		count++;
+	}
+
 }
+
+gs.info("Count of items: " + count);
 
 GlideImpersonate().impersonate(adminID);
