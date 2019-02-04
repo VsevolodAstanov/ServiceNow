@@ -1,6 +1,6 @@
 function Application() {
 
-	var _this = this;
+	var self = this;
 	var applications = [];
 	var ps = new sn_impex.GlideExcelParser();
 	var attachment = new GlideSysAttachment();
@@ -58,7 +58,7 @@ function Application() {
 			return;
 		}
 
-		if(!_this.queryRelatedData())
+		if(!self.queryRelatedData())
 			return;
 
 		applications.forEach(function(appl) {
@@ -67,19 +67,19 @@ function Application() {
 			applGR.initialize();
 			applGR.name = appl.name;
 			applGR.operational_status = appl.operational_status;
-			applGR.support_group = _this.sys_user_group[appl.support_group];
-			applGR.change_control = _this.sys_user_group[appl.change_control];
-			applGR.owned_by = _this.sys_user[appl.owned_by];
-			applGR.managed_by = _this.sys_user[appl.managed_by];
+			applGR.support_group = self.sys_user_group[appl.support_group];
+			applGR.change_control = self.sys_user_group[appl.change_control];
+			applGR.owned_by = self.sys_user[appl.owned_by];
+			applGR.managed_by = self.sys_user[appl.managed_by];
 			applGR.description = appl.description;
-			applGR.u_hier2 = _this.u_org_hierarchy[appl.u_hier2];
-			applGR.location = _this.cmn_location[appl.location];
-			applGR.company = _this.core_company[appl.company];
+			applGR.u_hier2 = self.u_org_hierarchy[appl.u_hier2];
+			applGR.location = self.cmn_location[appl.location];
+			applGR.company = self.core_company[appl.company];
 
 			applGR.insert();
 
 			if(applGR.isValidRecord()) {
-				_this.addBSRelation(applGR.getUniqueValue(), appl.business_service);
+				self.addBSRelation(applGR.getUniqueValue(), appl.business_service);
 			}
 
 		});
@@ -98,7 +98,7 @@ function Application() {
 		];
 
 		for(ql = 0; ql < queryTables.length; ql++) {
-			_this[queryTables[ql]] = {};
+			self[queryTables[ql]] = {};
 			queryStore[queryTables[ql]] = "";
 		}
 
@@ -136,7 +136,7 @@ function Application() {
 
 				var nameKey = (gr.name ? gr.name.getDisplayValue() : gr.u_name.getDisplayValue());
 
-				_this[table][nameKey] = gr.getUniqueValue();
+				self[table][nameKey] = gr.getUniqueValue();
 				var arrQuery = queryStore[table].split(",");
 				arrQuery.splice(arrQuery.indexOf(nameKey), 1);
 				queryStore[table] = arrQuery.join(",");
@@ -167,7 +167,7 @@ function Application() {
 			var relGR = new GlideRecord('cmdb_rel_ci');
 			relGR.initialize();
 			relGR.child = child;
-			relGR.parent  = _this.cmdb_ci_service[parents[p]];
+			relGR.parent  = self.cmdb_ci_service[parents[p]];
 			relGR.type = "1a9cb166f1571100a92eb60da2bce5c5"; //Used By: (Child)
 			relGR.insert();
 		}
