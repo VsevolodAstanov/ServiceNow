@@ -1,32 +1,62 @@
 var adminID = gs.getUserID();
 
 //User ID
-GlideImpersonate().impersonate("bf6ad3446f877600cbcf77131c3ee447"); 
+GlideImpersonate().impersonate("7d72b5526f111a4076eca9331c3ee4a6"); 
 
-//atalog Item list
+//Catalog Item list
 var names = [];
 
 var itemGR = new GlideRecord('sc_cat_item');
-//itemGR.addActiveQuery();
-itemGR.addEncodedQuery("type!=bundle^sys_class_name!=sc_cat_item_guide^type!=package^sys_class_name!=sc_cat_item_content^sys_class_name!=sc_cat_item_producer^active=true");
+itemGR.addActiveQuery();
+itemGR.addQuery('type', '!=', 'bundle');
+itemGR.addQuery('type', '!=', 'package');
+itemGR.addQuery('sys_class_name', '!=', 'sc_cat_item_guide');
+itemGR.addQuery('sys_class_name', '!=', 'sc_cat_item_content');
+itemGR.addQuery('sys_class_name', '!=', 'sc_cat_item_producer');
 itemGR.orderBy("name");
 itemGR.query();
 
-var count = 0;
+var countAvail = 0;
+var countUnavail = 0;
+
+var catalog = {};
 
 while(itemGR.next()) {
 
-	var gr = new GlideRecord('sc_category_user_criteria_mtom');
-	gr.addQuery('sc_category', itemGR.getValue('category'));
-	gr.query();
+	var hasCategory = itemGR.category.hasValue();
+	var isCategoryVisible = (hasCategory == true ? (new sn_sc.CatCategory(itemGR.getValue('category')).canView()) : true);
+	var category = (hasCategory == true ? itemGR.category.getDisplayValue() : "Global");
 
-	if(new sn_sc.CatItem(itemGR.getUniqueValue()).canView() == true && !gr.hasNext()) {
-		gs.info(itemGR.name.getDisplayValue());
-		count++;
+	if(!catalog[category]) {
+		catalog[category] = [];
+	}
+
+	//gs.info(category);
+
+	if(new sn_sc.CatItem(itemGR.getUniqueValue()).canView() == true && isCategoryVisible) {
+		catalog[category].push(itemGR.name.getDisplayValue());
+		countAvail++;
+	} else {
+		//gs.info(itemGR.name.getDisplayValue());
+		countUnavail++;
 	}
 
 }
 
-gs.info("Count of items: " + count);
+gs.info("Available Items: " + countAvail);
+gs.info("Unavailable Items: " + countUnavail + "\n");
+
+for(var c in catalog) {
+
+	if(catalog[c].length > 0) {
+		gs.info("Category: " + c);
+
+			for(var i = 0; i < catalog[c].length; i++) {
+			gs.info("\t" + catalog[c][i]);
+		}
+
+		gs.info("\n");
+	}
+}
 
 GlideImpersonate().impersonate(adminID);
