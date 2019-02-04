@@ -23,17 +23,19 @@ function DataMapping(type) {
 			if (!type)
 				throw "Map type is not defined";
 
+			var data = self._parseData();
+
 			switch(type) {
 				case "Groups":
-					this._groupToGroup();
+					this._groupToGroup(data);
 					break;
 
 				case "Technical Services":
-					this._tsToTS();
+					this._tsToTS(data);
 					break;
 
 				case "Business Services":
-					this._bsToBS();
+					this._bsToBS(data);
 					break;
 			}
 
@@ -42,32 +44,19 @@ function DataMapping(type) {
 		}
 	};
 
-	this._groupToGroup = function() {
-		var data = self._parseData();
-
-		//gs.info(JSUtil.describeObject(data));
-		var groups = self._replaceToSysIDs(["sys_user_group"], data);
-		gs.info(JSUtil.describeObject(data));
-
-		//self._updateMappedRecord(["incident", "sc_task"], type, groups);
+	this._groupToGroup = function(data) {
+		self._replaceToSysIDs(["sys_user_group"], data);
+		self._updateMappedRecord(["incident", "sc_task"], data);
 	};
 
-	this._tsToTS = function() {
-		var data = self._parseData();
-
-		gs.info(JSUtil.describeObject(data));
-		var ts = self._replaceToSysIDs(["u_cmdb_ci_technical"], data);
-
-		//self._updateMappedRecord(["incident"], type, groups);
+	this._tsToTS = function(data) {
+		self._replaceToSysIDs(["u_cmdb_ci_technical_service"], data);
+		self._updateMappedRecord(["incident"], data);
 	};
 
-	this._bsToBS = function() {
-		var data = self._parseData();
-
-		gs.info(JSUtil._replaceToSysIDs(data));
-		//var groups = self._replaceToSysIDs(["sys_user_group"], data);
-
-		//self._updateMappedRecord(["incident"], type, groups);
+	this._bsToBS = function(data) {
+		self._replaceToSysIDs(["cmdb_ci_service", "cmdb_ci_appl"], data);
+		//self._updateMappedRecord(["incident"], data);
 	};
 
 	this._parseData = function() {
@@ -113,34 +102,40 @@ function DataMapping(type) {
 		tables.forEach(function(table) {
 
 			var gr = new GlideRecord(table);
+			var query = ""
 			switch(type) {
 				case "Groups":
 					var groups = data[type];
-					var query = ""
 					for(var g = 0; g < groups.length; g++) {
 						query += "^ORname=" + groups[g]["old"] + "^ORname=" + groups[g]["new"];
 					}
 					break;
 
-				// case "Technical Services":
-				// 	gr.addQuery("u_technical_services", 'IN', Object.keys(data).join(','));
-				// 	break;
+				case "Technical Services":
+					var tech_serv = data[type];
+					for(var ts = 0; ts < tech_serv.length; ts++) {
+						query += "^ORname=" + tech_serv[ts]["old"] + "^ORname=" + tech_serv[ts]["new"];
+					}
+					break;
 
-				// case "Business Services":
-				// 	gr.addQuery("u_business_service", 'IN', Object.keys(data).join(','));
-				// 	break;
+				case "Business Services":
+					var bus_serv = data[type];
+					for(var ts = 0; ts < bus_serv.length; ts++) {
+						query += "^ORname=" + bus_serv[ts]["old"] + "^ORname=" + bus_serv[ts]["new"];
+					}
+					break;
 			}
 
 			gr.addEncodedQuery(query);
 			gr.query();
-			gs.info("Records: " + gr.getRowCount());
+			gs.info("Rercords matched: " + gr.getRowCount() + "\n");
 			while(gr.next()) {
+
+				var name = gr.name.getDisplayValue();
+				var id = gr.getUniqueValue();
 
 				switch(type) {
 					case "Groups":
-
-						var name = gr.name.getDisplayValue();
-						var id = gr.getUniqueValue();
 
 						for(var g = 0; g < groups.length; g++) {
 							if(groups[g]["old"] == name)
@@ -149,42 +144,99 @@ function DataMapping(type) {
 							if(groups[g]["new"] == name)
 								groups[g]["new"] = id;
 						}
+
+					case "Technical Services":
+
+						for(var ts = 0; ts < tech_serv.length; ts++) {
+							if(tech_serv[ts]["old"] == name)
+								tech_serv[ts]["old"] = id;
+
+							if(tech_serv[ts]["new"] == name)
+								tech_serv[ts]["new"] = id;
+						}
 				}
 			} 
 		});
 	};
 
-	// this._updateMappedRecord: function(tables, type, data) {
-	// 	tables.forEach(function(table) {
+	this._updateMappedRecord = function(tables, data) {
+		tables.forEach(function(table) {
+			
+			var query = "";
+			var gr = new GlideRecord(table);
+			gr.addActiveQuery();
+			gr.addQuery('sys_created_on', ">=", "javascript:gs.dateGenerate('2018-01-01','00:00:00')");
 
-	// 		var query = "";
-	// 		var gr = new GlideRecord(table);
-	// 		gr.addActiveQuery();
-	// 		switch(type) {
-	// 			case "Groups":
-	// 				for(var d = 0; d < data.length; d++) {
-	// 					gr.addOrQuery("assignment_group", Object.keys(data[d]).join());
-	// 				}
-	// 				break;
+			gs.info("Type: " + type);
+			switch(type) {
+				case "Groups":
 
-	// 			case "Technical Services":
-	// 				gr.addQuery("u_technical_services", 'IN', Object.keys(data).join(','));
-	// 				break;
+					var groups = data[type];
 
-	// 			case "Business Services":
-	// 				gr.addQuery("u_business_service", 'IN', Object.keys(data).join(','));
-	// 				break;
-	// 		}
+					for(var g = 0; g < groups.length; g++) {
+						query += "^ORassignment_group=" + groups[g]["old"];
+					}
+					break;
 
-	// 		gr.addQuery('state', "IN", [1,2,3,6].join(','));
-	// 		gr.addQuery('sys_created_on', ">=", "javascript:gs.dateGenerate('2018-01-01','00:00:00')");
-	// 		gr.query();
+				case "Technical Services":
 
-	// 		gs.print("\nTable: " + table + "\nRecord: " + gr.getRowCount());
-	// 	});
-	// };
+					var tech_serv = data[type];
+
+					for(var ts = 0; ts < tech_serv.length; ts++) {
+						query += "^ORu_technical_service=" + tech_serv[ts]["old"];
+					}
+					break;
+
+				// case "Business Services":
+				// 	gr.addQuery("u_business_service", 'IN', Object.keys(data).join(','));
+				// 	break;
+			}
+
+			//query += "^sys_created_on>=javascript:gs.dateGenerate('2018-01-01','00:00:00')"
+
+			//gs.info(query);
+			gr.addEncodedQuery(query);
+			gr.orderBy('number');
+			gr.query();
+			recordCycle: while(gr.next()) {
+				switch(type) {
+					case "Groups":
+						var groups = data[type];
+
+						for(var g = 0; g < groups.length; g++) {
+							if(gr.getValue('assignment_group') == groups[g]["old"]) {
+								gr.setValue('assignment_group', groups[g]["new"]);
+
+								//gs.info(groups[g]["old"] + " : " + groups[g]["new"]);
+
+								continue recordCycle;
+							}
+						}
+
+					case "Technical Services":
+						var tech_serv = data[type];
+
+						for(var ts = 0; ts < tech_serv.length; ts++) {
+							if(gr.getValue('u_technical_service') == tech_serv[ts]["old"]) {
+								gr.setValue('u_technical_service', tech_serv[ts]["new"]);
+
+								//gs.info(tech_serv[g]["old"] + " : " + tech_serv[g]["new"]);
+
+								continue recordCycle;
+							}
+						}
+				}
+				//gr.setWorkflow(false);
+				//gr.update();
+				
+				//gs.info(gr.assignment_group.getDisplayValue());
+			}
+
+			gs.print("\n\ttTable: " + table + "\n\tRecord: " + gr.getRowCount());
+		});
+	};
 }
 
-new DataMapping("Groups").map();
-//new DataMapping("Business Services").map();
+//new DataMapping("Groups").map();
+new DataMapping("Business Services").map();
 //new DataMapping("Technical Services").map();
