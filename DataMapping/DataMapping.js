@@ -267,7 +267,7 @@ function DataMapping(type) {
 							if(gr.getValue('u_business_service') == bs_app[ba]["old"]) {
 								gr.setValue('u_business_service', bs_app[ba]["new"]);
 
-								if(gr.getValue('u_application_ci') == bs_app[ba]["app"])
+								if(bs_app[ba]["app"])
 									gr.setValue('u_application_ci', bs_app[ba]["app"])
 
 								self._update(gr);
