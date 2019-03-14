@@ -1,6 +1,6 @@
 function GroupLocMapping() {
 
-	var _this = this;
+	var self = this;
 	var mapping = [];
 	var ps = new sn_impex.GlideExcelParser();
 	var attachment = new GlideSysAttachment();
@@ -43,7 +43,7 @@ function GroupLocMapping() {
 			return;
 		}
 
-		if(!_this.queryRelatedData())
+		if(!self._queryRelatedData())
 			return;
 
 		mapping.forEach(function(mapp) {
@@ -51,19 +51,19 @@ function GroupLocMapping() {
 			var mappingGR = new GlideRecord("u_business_service_to_group_org_loc_mapping");
 			mappingGR.initialize();
 			mappingGR.u_input_table = "cmdb_ci_service";
-			mappingGR.u_input_business_service = _this.cmdb_ci_service[mapp.technical_service];
-			mappingGR.u_input_record = _this.cmdb_ci_service[mapp.technical_service];
+			mappingGR.u_input_business_service = self.cmdb_ci_service[mapp.technical_service];
+			mappingGR.u_input_record = self.cmdb_ci_service[mapp.technical_service];
 			mappingGR.u_language = "en";
-			mappingGR.u_location = _this.cmn_location[mapp.location];
+			mappingGR.u_location = self.cmn_location[mapp.location];
 			mappingGR.u_output_table = "sys_user_group";
-			mappingGR.u_output_group = _this.sys_user_group[mapp.assignment_group];
-			mappingGR.u_output_record = _this.sys_user_group[mapp.assignment_group];
+			mappingGR.u_output_group = self.sys_user_group[mapp.assignment_group];
+			mappingGR.u_output_record = self.sys_user_group[mapp.assignment_group];
 			mappingGR.u_type = "ba473b63379e53002153d5c543990eed" // Business Service to Group
 			mappingGR.insert();
 		});
 	};
 
-	this.queryRelatedData = function() {
+	this._queryRelatedData = function() {
 
 		var queryStore = {};
 		var queryTables = [
@@ -73,7 +73,7 @@ function GroupLocMapping() {
 		];
 
 		for(ql = 0; ql < queryTables.length; ql++) {
-			_this[queryTables[ql]] = {};
+			self[queryTables[ql]] = {};
 			queryStore[queryTables[ql]] = "";
 		}
 
@@ -104,7 +104,7 @@ function GroupLocMapping() {
 				var name = gr.name.getDisplayValue();
 				var id = gr.getUniqueValue();
 
-				_this[table][name] = id;
+				self[table][name] = id;
 
 				//Avoid duplicate values
 				var arrQuery = queryStore[table].split(",");
@@ -117,7 +117,7 @@ function GroupLocMapping() {
 			glideQueryHandler(qs, queryStore[qs]);
 		}
 
-		_this._getBusinessCritValues();
+		self._getBusinessCritValues();
 
 		var failQuery;
 		for (var qu in queryStore) {

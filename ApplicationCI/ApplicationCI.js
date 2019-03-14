@@ -35,22 +35,34 @@ function Application() {
 		*/
 
 		while(ps.next()) { 
-			var r = ps.getRow(); 
-			applications.push({
-				name: r["Name"],
-				operational_status: r["Operational Status"],
-				support_group: r["L2 Support Group"],
-				change_control: r["Approval Group"],
-				owned_by: r["Business Owner"],
-				managed_by: r["Technical Owner"],
-				short_description: r["Description"],
-				u_hier2: r["Division"],
-				location: r["Location"],
-				company: r["Company"],
-				business_service: r["Related Business Services"]
-			});
+			var r = ps.getRow();
 
-			gs.info(r["Company"]);
+			var _application = {};
+
+			if(r["Name"])
+				_application.name = r["Name"];
+			if(r["Company"])
+				_application.company = r["Company"];
+			if(r["L2 Support Group"])
+				_application.support_group = r["L2 Support Group"];
+			if(r["L1 Support Group"])
+				_application.assignment_group = r["L1 Support Group"];
+			if(r["Approval Group"])
+				_application.change_control =r["Approval Group"];
+			if(r["Business Owner"])
+				_application.owned_by = r["Business Owner"];
+			if(r["Technical Owner"])
+				_application.managed_by = r["Technical Owner"];
+			if(r["Description"])
+				_application.short_description = r["Description"];
+			if(r["Related Business Services"])
+				_application.business_service = r["Related Business Services"];
+			if(r["Division"])
+				_application.u_hier2 = r["Division"];
+			if(["Location"])
+				_application.location = r["Location"];
+
+			applications.push(_application);
 		}
 
 		if(applications.length == 0) {
@@ -68,10 +80,11 @@ function Application() {
 			applGR.name = appl.name;
 			applGR.operational_status = appl.operational_status;
 			applGR.support_group = self.sys_user_group[appl.support_group];
+			applGR.assignment_group = self.sys_user_group[appl.assignment_group];
 			applGR.change_control = self.sys_user_group[appl.change_control];
 			applGR.owned_by = self.sys_user[appl.owned_by];
 			applGR.managed_by = self.sys_user[appl.managed_by];
-			applGR.description = appl.description;
+			applGR.short_description = appl.short_description;
 			applGR.u_hier2 = self.u_org_hierarchy[appl.u_hier2];
 			applGR.location = self.cmn_location[appl.location];
 			applGR.company = self.core_company[appl.company];
@@ -103,12 +116,24 @@ function Application() {
 		}
 
 		applications.forEach(function(appl) {
-			queryStore.sys_user += appl.owned_by + "," + appl.managed_by + ",";
-			queryStore.cmn_location += appl.location + ",";
-			queryStore.core_company += appl.company + ",";
-			queryStore.sys_user_group += appl.support_group + "," + appl.change_control + ",";
-			queryStore.u_org_hierarchy += appl.u_hier2 + ",";
-			queryStore.cmdb_ci_service += appl.business_service + ",";
+			if(appl.owned_by)
+				queryStore.sys_user += appl.owned_by + ",";
+			if(appl.managed_by)
+				queryStore.sys_user += appl.managed_by + ",";
+			if(appl.location)
+				queryStore.cmn_location += appl.location + ",";
+			if(appl.company)
+				queryStore.core_company += appl.company + ",";
+			if(appl.support_group)
+				queryStore.sys_user_group += appl.support_group + ",";
+			if(appl.change_control)
+				queryStore.sys_user_group += appl.change_control + ","
+			if(appl.assignment_group)
+				queryStore.sys_user_group += appl.assignment_group + ",";
+			if(appl.u_hier2)
+				queryStore.u_org_hierarchy += appl.u_hier2 + ",";
+			if(appl.business_service)
+				queryStore.cmdb_ci_service += appl.business_service + ",";
 		});
 
 		//Remove Duplicates

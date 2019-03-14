@@ -33,30 +33,48 @@ function Services(service_type) {
 				- Name
 				- Business Criticality
 				- Approval Group
+				- Problem Approval Group
 				- Support Group
 				- Operational Status
 				- Business Owner
 				- Technical Owner
 				- Location
+				- Description
 		*/
 
 		while(ps.next()) { 
-			var r = ps.getRow(); 
-			services.push({
-				name: r["Name"],
-				operational_status: r["Operational Status"]  || "",
-				support_group: r["Support Group"]  || "",
-				change_control: r["Approval Group"]  || "",
-				busines_criticality: r["Business Criticality"]  || "",
-				owned_by: r["Business Owner"] || "",
-				managed_by: r["Technical Owner"]  || "",
-				location: r["Location"]  || "",
-				company: r["Company"]  || ""
-			});
+			var r = ps.getRow();
+
+			var _service = {};
+
+			if(r["Name"])
+				_service.name = r["Name"];
+			if(r["Operational Status"])
+				_service.operational_status = r["Operational Status"];
+			if(r["Support Group"])
+				_service.support_group = r["Support Group"];
+			if(r["Problem Approval Group"])
+				_service.u_problem_approval_group = r["Problem Approval Group"];
+			if(r["Approval Group"])
+				_service.change_control =r["Approval Group"];
+			if(r["Business Criticality"])
+				_service.busines_criticality = r["Business Criticality"];
+			if(r["Business Owner"])
+				_service.owned_by = r["Business Owner"];
+			if(r["Technical Owner"])
+				_service.managed_by = r["Technical Owner"];
+			if(["Location"])
+				_service.location = r["Location"];
+			if(r["Company"])
+				_service.company = r["Company"];
+			if(r["Description"])
+				_service.description = r["Description"];
+
+			services.push(_service);
 		}
 
 		if(services.length == 0) {
-			gs.info("Technical Service list is empty");
+			gs.info("Service list is empty");
 			return;
 		}
 
@@ -95,6 +113,8 @@ function Services(service_type) {
 				servicesGR.support_group = _this.sys_user_group[serv.support_group];
 			if(serv.change_control)
 				servicesGR.change_control = _this.sys_user_group[serv.change_control];
+			if(serv.u_problem_approval_group)
+				servicesGR.u_problem_approval_group = _this.sys_user_group[serv.u_problem_approval_group];
 			if(serv.owned_by)
 				servicesGR.owned_by = _this.sys_user[serv.owned_by];
 			if(serv.managed_by)
@@ -105,6 +125,8 @@ function Services(service_type) {
 				servicesGR.location = _this.cmn_location[serv.location];
 			if(serv.company)
 				servicesGR.company = _this.core_company[serv.company];
+			if(serv.description)
+				servicesGR.short_description = serv.description;
 
 			servicesGR.update();
 		});
@@ -131,10 +153,21 @@ function Services(service_type) {
 
 		services.forEach(function(serv) {
 			queryStore[service_type] += serv.name + ",";
-			queryStore.sys_user += serv.owned_by + "," + serv.managed_by + ",";
-			queryStore.cmn_location += serv.location + ",";
-			queryStore.core_company += serv.company + ",";
-			queryStore.sys_user_group += serv.support_group + "," + serv.change_control + ",";
+
+			if(serv.owned_by)
+				queryStore.sys_user += serv.owned_by + ",";
+			if(serv.managed_by)
+				queryStore.sys_user += serv.managed_by + ",";
+			if(serv.location)
+				queryStore.cmn_location += serv.location + ",";
+			if(serv.company)
+				queryStore.core_company += serv.company + ",";
+			if(serv.support_group)
+				queryStore.sys_user_group += serv.support_group + ",";
+			if(serv.change_control)
+				queryStore.sys_user_group += serv.change_control + ","
+			if(serv.u_problem_approval_group)
+				queryStore.sys_user_group += serv.u_problem_approval_group + ",";
 		});
 
 		//Remove Duplicates
@@ -186,6 +219,9 @@ function Services(service_type) {
 		var failQuery;
 		for (var qu in queryStore) {
 			if(queryStore[qu].length > 0) {
+				if(qu == service_type)
+					continue;
+
 				gs.info("Wrong values on table : " + qu);
 				gs.info(queryStore[qu]);
 				failQuery = true;
@@ -226,4 +262,4 @@ function Services(service_type) {
 	'cmdb_ci_service'
 */
 
-new Services('u_cmdb_ci_technical_service').createServices();
+new Services('cmdb_ci_service').createServices();
