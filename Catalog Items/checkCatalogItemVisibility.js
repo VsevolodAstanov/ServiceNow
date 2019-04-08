@@ -1,62 +1,59 @@
 var adminID = gs.getUserID();
 
 //User ID
-GlideImpersonate().impersonate("7d72b5526f111a4076eca9331c3ee4a6"); 
+GlideImpersonate().impersonate("5e9f68906fbb064076eca9331c3ee424");
 
-//Catalog Item list
-var names = [];
-
-var itemGR = new GlideRecord('sc_cat_item');
-itemGR.addActiveQuery();
-itemGR.addQuery('type', '!=', 'bundle');
-itemGR.addQuery('type', '!=', 'package');
-itemGR.addQuery('sys_class_name', '!=', 'sc_cat_item_guide');
-itemGR.addQuery('sys_class_name', '!=', 'sc_cat_item_content');
-itemGR.addQuery('sys_class_name', '!=', 'sc_cat_item_producer');
-itemGR.orderBy("name");
-itemGR.query();
+var catItemGR = new GlideRecord('sc_cat_item_category');
+catItemGR.addActiveQuery();
+catItemGR.addQuery('sc_cat_item.type', '!=', 'bundle');
+catItemGR.addQuery('sc_cat_item.type', '!=', 'package');
+catItemGR.addQuery('sc_cat_item.sys_class_name', '!=', 'sc_cat_item_guide');
+catItemGR.addQuery('sc_cat_item.sys_class_name', '!=', 'sc_cat_item_content');
+catItemGR.addQuery('sc_cat_item.sys_class_name', '!=', 'sc_cat_item_producer');
+catItemGR.query();
 
 var countAvail = 0;
 var countUnavail = 0;
 
 var catalog = {};
+var items = {};
 
-while(itemGR.next()) {
+while(catItemGR.next()) {
 
-	var hasCategory = itemGR.category.hasValue();
-	var isCategoryVisible = (hasCategory == true ? (new sn_sc.CatCategory(itemGR.getValue('category')).canView()) : true);
-	var category = (hasCategory == true ? itemGR.category.getDisplayValue() : "Global");
-
-	if(!catalog[category]) {
+	var hasCategory = catItemGR.sc_category.hasValue();
+	var isCategoryVisible = (hasCategory == true ? (new sn_sc.CatCategory(catItemGR.getValue('sc_category')).canView()) : true);
+	var category = (hasCategory == true ? catItemGR.sc_category.getDisplayValue() : "Global");
+ 
+	if(!catalog[category] && isCategoryVisible) {
 		catalog[category] = [];
 	}
 
-	//gs.info(category);
-
-	if(new sn_sc.CatItem(itemGR.getUniqueValue()).canView() == true && isCategoryVisible) {
-		catalog[category].push(itemGR.name.getDisplayValue());
+	if(new sn_sc.CatItem(catItemGR.getValue('sc_cat_item')).canView() == true && isCategoryVisible) {
+		catalog[category].push(catItemGR.sc_cat_item.getDisplayValue());
+		items[catItemGR.getValue('sc_cat_item')] = catItemGR.sc_cat_item.getDisplayValue();
 		countAvail++;
 	} else {
-		//gs.info(itemGR.name.getDisplayValue());
+		//gs.print(catItemGR.name.getDisplayValue());
 		countUnavail++;
 	}
 
 }
 
-gs.info("Available Items: " + countAvail);
-gs.info("Unavailable Items: " + countUnavail + "\n");
-
+var result = "";
 for(var c in catalog) {
 
 	if(catalog[c].length > 0) {
-		gs.info("Category: " + c);
+		result += '\n\nCategory: ' + c;
 
-			for(var i = 0; i < catalog[c].length; i++) {
-			gs.info("\t" + catalog[c][i]);
+		for(var i = 0; i < catalog[c].length; i++) {
+			result += "\n\t" + catalog[c][i];
 		}
-
-		gs.info("\n");
 	}
 }
+
+gs.print("\n" + (gs.getUser().hasRole('itil') ? "ITIL: " : "End User: ") + gs.getUserName() +
+"\nAvailable Items: " + countAvail +
+"\nUnavailable Items: " + countUnavail +
+result);
 
 GlideImpersonate().impersonate(adminID);

@@ -59,21 +59,26 @@ function CatalogItem(id) {
 			choices;
 
 		while(ps.next()) {
+
 			r = ps.getRow();
+
+			if(r["Question"] == null)
+				continue;
+
 			name = self._getUniqueValue(r["Question"], true);
 			type = self._setVariableType(r["Variable type"]);
 			help_text = r["Help Text"] || "";
-			mandatory = r["Mandatory"] ? (r["Dependency"] ? false : true) : false;
+			mandatory = r["Mandatory?"] ? (r["Dependency"] ? false : true) : false;
 			choices = self._parseChoices(type, r["Values for fields"]);
 
 			// choices.forEach(function(c) {
 			// 	gs.info("Variable: " + c.question_text);
-			// 	gs.info("Unique Value: " + v.name);
-			// 	gs.info("Help Text: " + v.help_text);
-			// 	gs.info("Type: " + v.type);
-			// 	gs.info("Mandatory : " + v.mandatory);
-			// 	gs.info("Choices: " + v.choices);
-			// 	gs.info("Order: " + v.order);
+			// 	gs.info("Unique Value: " + c.name);
+			// 	gs.info("Help Text: " + c.help_text);
+			// 	gs.info("Type: " + c.type);
+			// 	gs.info("Mandatory : " + c.mandatory);
+			// 	gs.info("Choices: " + c.choices);
+			// 	gs.info("Order: " + c.order);
 			// 	gs.info("\n");
 			// });
 
@@ -87,6 +92,8 @@ function CatalogItem(id) {
 				// dependency: self._parseDependency(r["Dependency"])
 			});
 		}
+
+		gs.info("T4e");
 
 		//Parse Chechbox Choices and define them as Variables
 		for (var gv = 0; gv < self.variables.length; gv++) {
@@ -118,14 +125,14 @@ function CatalogItem(id) {
 	this._createVariables = function() {
 
 		self.variables.forEach(function(v) {
-			// gs.info("Variable: " + v.question_text);
-			// gs.info("Unique Value: " + v.name);
-			// gs.info("Help Text: " + v.help_text);
-			// gs.info("Type: " + v.type);
-			// gs.info("Mandatory : " + v.mandatory);
-			// gs.info("Choices: " + v.choices);
-			// gs.info("Order: " + v.order);
-			// gs.info("\n");
+			gs.info("Variable: " + v.question_text);
+			gs.info("Unique Value: " + v.name);
+			gs.info("Help Text: " + v.help_text);
+			gs.info("Type: " + v.type);
+			gs.info("Mandatory : " + v.mandatory);
+			gs.info("Choices: " + v.choices);
+			gs.info("Order: " + v.order);
+			gs.info("\n");
 
 			var variableGR = new GlideRecord('item_option_new');
 			variableGR.initialize();
@@ -466,5 +473,5 @@ function CatalogItem(id) {
 }
 
 
-var catItemHandler = new CatalogItem("a61f69521b826700cd6298efbd4bcba3");
-catItemHandler.createPolicy();
+var catItemHandler = new CatalogItem("47817e6c1be4b700cd6298efbd4bcbf7");
+catItemHandler.createDefinitions();
