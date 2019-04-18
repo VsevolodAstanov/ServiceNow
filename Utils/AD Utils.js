@@ -9,7 +9,7 @@ var allUsers = gr.getRowCount();
 
 gs.print("All Users: " + allUsers);
 
-var UNIT_LEVEL = 10;
+var UNIT_LEVEL = 5;
 var ouStore = {};
 
 for (var lvl = 1; lvl <= UNIT_LEVEL; lvl ++) {
@@ -21,7 +21,7 @@ while(gr.next()) {
 	//gs.print(gr.name.getDisplayValue());
 
 	var ad_dn = gr.u_ad_dn.getDisplayValue();
-	var ou_re = /OU=(.*?)(,|$)/g;
+	var ou_re = /(OU=.*?)(,|$)/g;
 	var ou_list_arr = [];
 	var ou_list = [];
 
@@ -47,15 +47,20 @@ function addUnit(list) {
 		if(!list[l-1])
 			continue;
 
-		if(list.length == 5) {
+		//if(list.length == 5) {
+
+		if(list[l-1].indexOf('WK-') != -1 || list[l-1].indexOf('FRS') != -1 || list[l-1].indexOf('WKHealth-') != -1 || list[l-1].indexOf('APAC-Organizations') != -1) {
 			if(!ouStore["level_" + l][list[l-1]])
 				ouStore["level_" + l][list[l-1]] = 1;
 			else
 				ouStore["level_" + l][list[l-1]]++;
-
-			if(l == 5 && list[l-1] == "Accounts")
-				gs.print(list.toString());
 		}
+
+
+
+		// 	if(l == 5 && list[l-1] == "Accounts")
+		// 		gs.print(list.toString());
+		// }
 		// else if(list.length == 4 && (l == 3 || l == 4)) {
 		// 	if(!ouStore["level_" + (l+1)][list[l-1]])
 		// 		ouStore["level_" + (l+1)][list[l-1]] = 1;

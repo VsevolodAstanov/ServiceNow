@@ -18,7 +18,7 @@ function GroupLocMapping() {
 
 	this.createMapping = function() {
 
-		ps.setSheetName("TS group mapping "); // XSLX Tab name
+		ps.setSheetName("TS group mapping"); // XSLX Tab name
 
 		ps.parse(attStr);
 
@@ -29,13 +29,20 @@ function GroupLocMapping() {
 				- Location
 		*/
 
-		while(ps.next()) { 
-			var r = ps.getRow(); 
-			mapping.push({
-				technical_service: r["Technical Service"],
-				assignment_group: r["Assignment Group"],
-				location: r["Location"]
-			});
+		while(ps.next()) {
+			var r = ps.getRow();
+			var _mapping = {};
+
+			if(r["Technical Service"])
+				_mapping.technical_service = r["Technical Service"];
+			if(r["Assignment Group"])
+				_mapping.assignment_group = r["Assignment Group"];
+			if(r["Location"])
+				_mapping.location = r["Location"];
+			if(r["AD DN"])
+				_mapping.ad_dn = r["AD DN"];
+
+			mapping.push(_mapping);
 		}
 
 		if(mapping.length == 0) {
