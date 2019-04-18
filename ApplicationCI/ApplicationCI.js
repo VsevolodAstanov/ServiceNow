@@ -37,10 +37,12 @@ function Application() {
 		while(ps.next()) { 
 			var r = ps.getRow();
 
+			if(!r["Name"])
+				continue;
+
 			var _application = {};
 
-			if(r["Name"])
-				_application.name = r["Name"];
+			_application.name = r["Name"];
 			if(r["Company"])
 				_application.company = r["Company"];
 			if(r["L2 Support Group"])

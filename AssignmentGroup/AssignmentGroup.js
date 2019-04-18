@@ -40,13 +40,17 @@ AssignmentGroups.prototype.createGroups = function() {
 	*/
 
 	while(this.ps.next()) { 
-		var r = this.ps.getRow(); 
+		var r = this.ps.getRow();
+
+		if(!r["Assignment group name"])
+			continue;
+
 		this.groups.push({
 			name: r["Assignment group name"],
 			manager: r["Group Manager"],
 			company: r["Company"],
 			description: r["Description"],
-			location: r["Location"],
+			location: r["Location"] || "",
 			types: this.removeSpaces(r["Group type"]),
 			members: this.removeSpaces(r["Group Members"]),
 			roles: this.removeSpaces(r["Roles"])
@@ -142,13 +146,16 @@ AssignmentGroups.prototype.queryRelatedData = function() {
 
 
 	var failQuery;
+	var failPrintLog = "";
 	for (var q in queryStore) {
 		if(queryStore[q].length > 0) {
-			gs.info("Wrong values on table : " + q);
-			gs.info(queryStore[q]);
+			failPrintLog += '\nWrong values on table "' + q + '":';
+			failPrintLog += "\n\n" + queryStore[q];
 			failQuery = true;
 		}
 	}
+
+	gs.print(failPrintLog);
 
 	return !failQuery;
 }

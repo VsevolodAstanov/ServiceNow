@@ -45,10 +45,13 @@ function Services(service_type) {
 		while(ps.next()) { 
 			var r = ps.getRow();
 
+			if(!r["Name"])
+				continue;
+
 			var _service = {};
 
-			if(r["Name"])
-				_service.name = r["Name"];
+			_service.name = r["Name"];
+
 			if(r["Operational Status"])
 				_service.operational_status = r["Operational Status"];
 			if(r["Support Group"])
@@ -63,7 +66,7 @@ function Services(service_type) {
 				_service.owned_by = r["Business Owner"];
 			if(r["Technical Owner"])
 				_service.managed_by = r["Technical Owner"];
-			if(["Location"])
+			if(r["Location"])
 				_service.location = r["Location"];
 			if(r["Company"])
 				_service.company = r["Company"];
@@ -262,4 +265,4 @@ function Services(service_type) {
 	'cmdb_ci_service'
 */
 
-new Services('cmdb_ci_service').createServices();
+new Services('u_cmdb_ci_technical_service').createServices();

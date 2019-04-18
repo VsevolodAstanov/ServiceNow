@@ -62,7 +62,7 @@ function CatalogItem(id) {
 
 			r = ps.getRow();
 
-			if(r["Question"] == null)
+			if(!r["Question"])
 				continue;
 
 			name = self._getUniqueValue(r["Question"], true);

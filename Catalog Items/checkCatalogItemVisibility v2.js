@@ -1,11 +1,14 @@
 var countries = [];
+var result = "";
+var catalog = {};
+var items = {};
 var adminID = gs.getUserID();
 
 var usersGR = new GlideRecord('sys_user');
 usersGR.addActiveQuery();
 usersGR.addNotNullQuery('manager');
 usersGR.addQuery('locked_out', false);
-usersGR.addEncodedQuery('u_ad_dnLIKEWKHealth');
+usersGR.addEncodedQuery('u_ad_dnLIKEOU=WKHealth');
 usersGR.query();
 
 while(usersGR.next()) {
@@ -35,9 +38,6 @@ while(usersGR.next()) {
 	var countAvail = 0;
 	var countUnavail = 0;
 
-	var catalog = {};
-	var items = {};
-
 	while(catItemGR.next()) {
 
 		var hasCategory = catItemGR.sc_category.hasValue();
@@ -49,6 +49,7 @@ while(usersGR.next()) {
 		}
 
 		if(new sn_sc.CatItem(catItemGR.getValue('sc_cat_item')).canView() == true && isCategoryVisible) {
+
 			catalog[category].push(catItemGR.sc_cat_item.getDisplayValue());
 			items[catItemGR.getValue('sc_cat_item')] = catItemGR.sc_cat_item.getDisplayValue();
 			countAvail++;
@@ -59,24 +60,34 @@ while(usersGR.next()) {
 
 	}
 
-	var result = "";
-	for(var c in catalog) {
+	// result += "\n\n" + (gs.getUser().hasRole('itil') ? "ITIL: " : "End User: ") + gs.getUserName() +
+	// "\nAvailable Items: " + countAvail +
+	// //"\nUnavailable Items: " + countUnavail +
+	// "\nCountry: " + country;
 
-		if(catalog[c].length > 0) {
-			result += '\n\nCategory: ' + c;
+	// for(var c in catalog) {
 
-			for(var i = 0; i < catalog[c].length; i++) {
-				result += "\n\t" + catalog[c][i];
-			}
-		}
-	}
+	// 	if(catalog[c].length > 0) {
+	// 		result += '\n\nCategory: ' + c;
 
-	gs.print("\n" + (gs.getUser().hasRole('itil') ? "ITIL: " : "End User: ") + gs.getUserName() +
-	"\nAvailable Items: " + countAvail +
-	"\nUnavailable Items: " + countUnavail +
-	"\nCountry: " + country +
-	result);
-
+	// 		for(var i = 0; i < catalog[c].length; i++) {
+	// 			result += "\n\t" + catalog[c][i];
+	// 		}
+	// 	}
+	// }
 }
+
+//gs.print(result);
+var item_result = [];
+var count = 0;
+
+for(var i in items) {
+	item_result.push("\n" + items[i]);
+	count++;
+}
+
+item_result.sort();
+
+gs.print("\nCount: " + count + "\n" + item_result.toString());
 
 GlideImpersonate().impersonate(adminID);
