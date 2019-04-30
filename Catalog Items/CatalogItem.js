@@ -68,7 +68,7 @@ function CatalogItem(id) {
 			name = self._getUniqueValue(r["Question"], true);
 			type = self._setVariableType(r["Variable type"]);
 			help_text = r["Help Text"] || "";
-			mandatory = r["Mandatory?"] ? (r["Dependency"] ? false : true) : false;
+			mandatory = r["Mandatory?"] == "Yes" ? (r["Dependency"] ? false : true) : false;
 			choices = self._parseChoices(type, r["Values for fields"]);
 
 			// choices.forEach(function(c) {
@@ -159,6 +159,11 @@ function CatalogItem(id) {
 				case self.VARIABLE_TYPES["reference"]:
 					variableGR.reference = v.choices[0];
 					variableGR.reference_qual_condition = v.choices[1];
+					break;
+
+				case self.VARIABLE_TYPES["listcollector"]:
+					variableGR.list_table = v.choices[0];
+					variableGR.reference_qual = v.choices[1];
 					break;
 			}
 
@@ -274,7 +279,7 @@ function CatalogItem(id) {
 		if(type == self.VARIABLE_TYPES["macro"])
 			return String(choices);
 
-		if(type == self.VARIABLE_TYPES["reference"]) {
+		if(type == self.VARIABLE_TYPES["reference"] || type == self.VARIABLE_TYPES["listcollector"]) {
 			choices = self._splitChoices(choices);
 			return [choices[0], choices[1]];
 		}
@@ -473,5 +478,5 @@ function CatalogItem(id) {
 }
 
 
-var catItemHandler = new CatalogItem("47817e6c1be4b700cd6298efbd4bcbf7");
+var catItemHandler = new CatalogItem("84cde77e1b45f7c03e3c76e1dd4bcb9e");
 catItemHandler.createDefinitions();

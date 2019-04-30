@@ -18,7 +18,7 @@ function GroupLocMapping() {
 
 	this.createMapping = function() {
 
-		ps.setSheetName("TS group mapping"); // XSLX Tab name
+		ps.setSheetName("Global TS group Mapping"); // XSLX Tab name
 
 		ps.parse(attStr);
 
@@ -26,21 +26,24 @@ function GroupLocMapping() {
 			Available data to transform from XSLX to ServiceNow Fields/Related Lists:
 				- Technical Service
 				- Assignment Group
-				- Location
+				- AD DN
 		*/
 
 		while(ps.next()) {
 			var r = ps.getRow();
+
+			if(!r["Technical Service"] || !r["Assignment Group"] || !r["AD DN"])
+				continue;
+
 			var _mapping = {};
 
-			if(r["Technical Service"])
-				_mapping.technical_service = r["Technical Service"];
-			if(r["Assignment Group"])
-				_mapping.assignment_group = r["Assignment Group"];
-			if(r["Location"])
-				_mapping.location = r["Location"];
-			if(r["AD DN"])
-				_mapping.ad_dn = r["AD DN"];
+			_mapping.technical_service = r["Technical Service"];
+			_mapping.assignment_group = r["Assignment Group"];
+			_mapping.ad_dn = r["AD DN"];
+			if(r["PRB"])
+				_mapping.prb = r["PRB"];
+			if(r["CAB"])
+				_mapping.cab = r["CAB"];
 
 			mapping.push(_mapping);
 		}
@@ -61,10 +64,16 @@ function GroupLocMapping() {
 			mappingGR.u_input_business_service = self.cmdb_ci_service[mapp.technical_service];
 			mappingGR.u_input_record = self.cmdb_ci_service[mapp.technical_service];
 			mappingGR.u_language = "en";
-			mappingGR.u_location = self.cmn_location[mapp.location];
+			mappingGR.u_ad_dn = mapp.ad_dn;
 			mappingGR.u_output_table = "sys_user_group";
 			mappingGR.u_output_group = self.sys_user_group[mapp.assignment_group];
 			mappingGR.u_output_record = self.sys_user_group[mapp.assignment_group];
+			if(mapp.prb)
+				mappingGR.u_output_pbm_record = self.sys_user_group[mapp.prb];
+			if(mapp.cab)
+				mappingGR.u_output_cab_record = self.sys_user_group[mapp.cab];
+			
+			
 			mappingGR.u_type = "ba473b63379e53002153d5c543990eed" // Business Service to Group
 			mappingGR.insert();
 		});
@@ -75,7 +84,6 @@ function GroupLocMapping() {
 		var queryStore = {};
 		var queryTables = [
 			"cmdb_ci_service",
-			"cmn_location",
 			"sys_user_group"
 		];
 
@@ -86,8 +94,11 @@ function GroupLocMapping() {
 
 		mapping.forEach(function(mapp) {
 			queryStore.cmdb_ci_service += mapp.technical_service + ",";
-			queryStore.cmn_location += mapp.location + ",";
 			queryStore.sys_user_group += mapp.assignment_group + ",";
+			if(mapp.prb)
+				queryStore.sys_user_group += mapp.prb + ",";
+			if(mapp.cab)
+				queryStore.sys_user_group += mapp.cab + ",";
 		});
 
 		//Remove Duplicates
@@ -97,14 +108,14 @@ function GroupLocMapping() {
 			}).filter(Boolean).join(',');
 		}
 
-		gs.info(queryStore.cmdb_ci_service);
-		gs.info(queryStore.cmn_location);
-		gs.info(queryStore.sys_user_group);
-
 		var glideQueryHandler = function(table, q) {
 			var gr = new GlideRecord(table);
 			gr.addActiveQuery();
 			gr.addQuery("name", "IN", q);
+			if(table == "sys_user_group") {
+				gr.addQuery("operational_status", "1"); //Operational
+				gr.addNullQuery("support_group");		//Global Technical Services
+			}
 			gr.query();
 
 			while(gr.next()) {

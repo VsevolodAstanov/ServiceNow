@@ -49,7 +49,7 @@ function addUnit(list) {
 
 		//if(list.length == 5) {
 
-		if(list[l-1].indexOf('WK-') != -1 || list[l-1].indexOf('FRS') != -1 || list[l-1].indexOf('WKHealth-') != -1 || list[l-1].indexOf('APAC-Organizations') != -1) {
+		if(list[l-1].indexOf('OU=WK-') != -1 || list[l-1].indexOf('OU=NASS-WKUS') != -1 || list[l-1].indexOf('OU=FRS') != -1 || list[l-1].indexOf('OU=WKHealth-') != -1 || list[l-1].indexOf('APAC-Organizations') != -1) {
 			if(!ouStore["level_" + l][list[l-1]])
 				ouStore["level_" + l][list[l-1]] = 1;
 			else
@@ -94,3 +94,18 @@ for(var l in ouStore) {
 }
 
 gs.print(result);
+
+// var user = "0bfa3bb76fb0e680cbcf77131c3ee4db";
+
+// var olm = new OrgLocMapping();
+// olm.debugEnabled();
+// var answer = olm.getMappingForUser("Business Service to Group", /*Business Service id*/ "0f2573d337da13002153d5c543990e8a", /*UserID*/user);
+// var group = answer.u_output_record;
+
+
+
+// if(group) {
+// 	var grGroup = new GlideRecord('sys_user_group');
+// 	grGroup.get(answer.u_output_record);
+// 	gs.print(grGroup.name.getDisplayValue());
+// }
