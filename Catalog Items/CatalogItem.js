@@ -72,12 +72,9 @@ function CatalogItem(id) {
 			choices = self._parseChoices(type, r["Values for fields"]);
 
 			// choices.forEach(function(c) {
-			// 	gs.info("Variable: " + c.question_text);
-			// 	gs.info("Unique Value: " + c.name);
-			// 	gs.info("Help Text: " + c.help_text);
-			// 	gs.info("Type: " + c.type);
-			// 	gs.info("Mandatory : " + c.mandatory);
-			// 	gs.info("Choices: " + c.choices);
+			// 	gs.info("Question: " + r["Question"]);
+			// 	gs.info("Text: " + c.text);
+			// 	gs.info("Value: " + c.value);
 			// 	gs.info("Order: " + c.order);
 			// 	gs.info("\n");
 			// });
@@ -92,8 +89,6 @@ function CatalogItem(id) {
 				// dependency: self._parseDependency(r["Dependency"])
 			});
 		}
-
-		gs.info("T4e");
 
 		//Parse Chechbox Choices and define them as Variables
 		for (var gv = 0; gv < self.variables.length; gv++) {
@@ -124,51 +119,62 @@ function CatalogItem(id) {
 
 	this._createVariables = function() {
 
+		var output_result = "";
+
 		self.variables.forEach(function(v) {
-			gs.info("Variable: " + v.question_text);
-			gs.info("Unique Value: " + v.name);
-			gs.info("Help Text: " + v.help_text);
-			gs.info("Type: " + v.type);
-			gs.info("Mandatory : " + v.mandatory);
-			gs.info("Choices: " + v.choices);
-			gs.info("Order: " + v.order);
-			gs.info("\n");
+			output_result += "\n\n\tVariable: " + v.question_text;
+			output_result += "\n\tUnique Value: " + v.name;
+			if(v.help_text)
+				output_result += "\n\tHelp Text: " + v.help_text;
+			output_result += "\n\tType: " + v.type;
+			output_result += "\n\tMandatory : " + v.mandatory;
+			if(v.choices.lenth > 0)
+				output_result += "\n\tChoices: " + v.choices;
+			output_result += "\n\tOrder: " + v.order;
 
 			var variableGR = new GlideRecord('item_option_new');
 			variableGR.initialize();
-			variableGR.active = true;
-			variableGR.cat_item = id;
-			variableGR.question_text = v.question_text;
-			variableGR.name = v.name;
-			variableGR.order = v.order;
-			variableGR.show_help = v.help_text ? true : false;
-			variableGR.help_text = v.help_text;
-			variableGR.type = v.type;
-			variableGR.mandatory = v.mandatory;
+			variableGR.setValue('active', true);
+			variableGR.setValue('cat_item', id);
+			variableGR.setValue('question_text', v.question_text);
+			variableGR.setValue('name', v.name);
+			variableGR.setValue('order', v.order);
+			variableGR.setValue('show_help', v.help_text ? true : false);
+			if(v.help_text)
+				variableGR.setValue('help_text', v.help_text);
+			variableGR.setValue('type', v.type);
+			variableGR.setValue('mandatory', v.mandatory);
 
 			switch(v.type) {
 				case self.VARIABLE_TYPES["macro"]:
-					variableGR.macro = self._createMacro(v.name, v.choices);
+					variableGR.setValue('macro', self._createMacro(v.name, v.choices));
 					break;
 
 				case self.VARIABLE_TYPES["containerstart"]:
-					variableGR.layout = v.choices[0];
-					variableGR.display_title = (v.choices[1] ? true : false);
+					output_result += "\n\tLayout: " + v.choices[0];
+					output_result += "\n\tDisplay title: " + (v.choices[1] ? true : false);
+					variableGR.setValue('layout', v.choices[0]);
+					variableGR.setValue('display_title', (v.choices[1] ? true : false));
 					break;
 
 				case self.VARIABLE_TYPES["reference"]:
-					variableGR.reference = v.choices[0];
-					variableGR.reference_qual_condition = v.choices[1];
+					output_result += "\n\tReference: " + v.choices[0];
+					output_result += "\n\tReference Qual Condition: " + v.choices[1];
+					variableGR.setValue('reference', v.choices[0]);
+					variableGR.setValue('reference_qual_condition', v.choices[1]);
 					break;
 
 				case self.VARIABLE_TYPES["listcollector"]:
-					variableGR.list_table = v.choices[0];
-					variableGR.reference_qual = v.choices[1];
+					output_result += "\n\tList table: " + v.choices[0];
+					output_result += "\n\tReference Qual: " + v.choices[1];
+					variableGR.setValue('list_table', v.choices[0]);
+					variableGR.setValue('reference_qual', v.choices[1]);
 					break;
 			}
 
 			if(self._isMultiChoiceBox(v.type)) {
-				variableGR.include_none = true;
+				output_result += "\n\tInclude none: " + true;
+				variableGR.setValue('include_none', true);
 			}
 
 			var varSysID = variableGR.insert();
@@ -176,16 +182,18 @@ function CatalogItem(id) {
 				self._createChoices(v.choices, varSysID);
 			}
 		});
+
+		gs.info(output_result);
 	};
 
 	this._createChoices = function(choices, id) {
 		choices.forEach(function(choice) {
 			var choicesGR = new GlideRecord('question_choice');
 			choicesGR.initialize();
-			choicesGR.question = id;
-			choicesGR.order = choice.order;
-			choicesGR.text = choice.text;
-			choicesGR.value = choice.value;
+			choicesGR.setValue('question', id);
+			choicesGR.setValue('order', choice.order);
+			choicesGR.setValue('text', choice.text);
+			choicesGR.setValue('value', choice.value);
 			choicesGR.insert();
 		});
 	};
@@ -294,8 +302,8 @@ function CatalogItem(id) {
 			var choice_text;
 			var v = 0;
 			while(v < choices.length) {
-				choice_text = choices[v].replace(/[^A-Za-z0-9_@\.,()\-\s]+/g, "");
-				choice_text = choice_text.replace(/^\s+/,"");
+				//choice_text = choices[v].replace(/[^A-Za-z0-9_@\.,()\-\s]+/g, "");
+				choice_text = choices[v].replace(/^\s+/,"");
 				choice_text == "" ? choices.splice(v, 1) : choices.splice(v, 1, {
 					"text": choice_text,
 					"value": self._getUniqueValue(choice_text),
@@ -478,5 +486,5 @@ function CatalogItem(id) {
 }
 
 
-var catItemHandler = new CatalogItem("84cde77e1b45f7c03e3c76e1dd4bcb9e");
+var catItemHandler = new CatalogItem("b5e8d6ff1b0d3fc03e3c76e1dd4bcb0d");
 catItemHandler.createDefinitions();
