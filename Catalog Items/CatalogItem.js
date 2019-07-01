@@ -486,5 +486,5 @@ function CatalogItem(id) {
 }
 
 
-var catItemHandler = new CatalogItem("b5e8d6ff1b0d3fc03e3c76e1dd4bcb0d");
+var catItemHandler = new CatalogItem("7f40a5541bcd3b803e3c76e1dd4bcbf8");
 catItemHandler.createDefinitions();

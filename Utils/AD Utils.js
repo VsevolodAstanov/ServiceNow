@@ -1,7 +1,7 @@
 var gr = new GlideRecord('sys_user');
 gr.addActiveQuery();
 //gr.addQuery('locked_out', false);
-gr.addEncodedQuery('active!=false^u_ad_dnLIKEOU=^nameNOT LIKE000_^user_nameNOT LIKEa-^u_auth_source=active_directory');
+gr.addEncodedQuery('locked_out=false^u_ad_dnLIKEOU=^nameNOT LIKE000_^user_nameNOT LIKEa-^u_auth_source=active_directory');
 //gr.setLimit(1000);
 gr.query();
 
