@@ -1,7 +1,7 @@
 var gr = new GlideRecord('sys_user');
 gr.addActiveQuery();
 //gr.addQuery('locked_out', false);
-gr.addEncodedQuery('locked_out=false^u_ad_dnLIKEOU=^nameNOT LIKE000_^user_nameNOT LIKEa-^u_auth_source=active_directory');
+gr.addEncodedQuery('active=true^locked_out=false');
 //gr.setLimit(1000);
 gr.query();
 
@@ -49,30 +49,32 @@ function addUnit(list) {
 
 		//if(list.length == 5) {
 
-		if(list[l-1].indexOf('OU=WK-') != -1 || list[l-1].indexOf('OU=NASS-WKUS') != -1 || list[l-1].indexOf('OU=FRS') != -1 || list[l-1].indexOf('OU=WKHealth-') != -1 || list[l-1].indexOf('APAC-Organizations') != -1) {
-			if(!ouStore["level_" + l][list[l-1]])
-				ouStore["level_" + l][list[l-1]] = 1;
-			else
-				ouStore["level_" + l][list[l-1]]++;
-		}
-
-
-
-		// 	if(l == 5 && list[l-1] == "Accounts")
-		// 		gs.print(list.toString());
-		// }
-		// else if(list.length == 4 && (l == 3 || l == 4)) {
-		// 	if(!ouStore["level_" + (l+1)][list[l-1]])
-		// 		ouStore["level_" + (l+1)][list[l-1]] = 1;
-		// 	else
-		// 		ouStore["level_" + (l+1)][list[l-1]]++;
-		// }
-		// else {
+		// if(list[l-1].indexOf('OU=Medknow Health') != -1 || list[l-1].indexOf('OU=Mumbai') != -1 || list[l-1].indexOf('OU=Gurgaon') != -1 || list[l-1].indexOf('OU=Health & TAA') != -1) {
 		// 	if(!ouStore["level_" + l][list[l-1]])
 		// 		ouStore["level_" + l][list[l-1]] = 1;
 		// 	else
 		// 		ouStore["level_" + l][list[l-1]]++;
 		// }
+
+
+
+			// if(l == 5 && list[l-1] == "Accounts")
+			// 	gs.print(list.toString());
+			// }
+
+		
+		if(list.length == 4 && (l == 3 || l == 4)) {
+			if(!ouStore["level_" + (l+1)][list[l-1]])
+				ouStore["level_" + (l+1)][list[l-1]] = 1;
+			else
+				ouStore["level_" + (l+1)][list[l-1]]++;
+		}
+		else {
+			if(!ouStore["level_" + l][list[l-1]])
+				ouStore["level_" + l][list[l-1]] = 1;
+			else
+				ouStore["level_" + l][list[l-1]]++;
+		}
 
 
 	}

@@ -1,17 +1,14 @@
-function CatalogItem(id) {
+function CatalogItemUtils() {
 
 	var self = this;
-	var ps = new sn_impex.GlideExcelParser();
-	var attachment = new GlideSysAttachment();
+	var output_result = "";
 	var ga = new GlideRecord('sys_attachment');
 	ga.addQuery('table_name', 'sys_update_set'); //Table name where file is attached
 	ga.addQuery('table_sys_id', (new GlideUpdateSet()).get()); //Record sys id where file is attached
 	ga.query();
 
-	if(!ga.next()){
-		gs.info("Attchment is not defined");
-		return;
-	}
+	if(!ga.next())
+		return gs.info("Attchment is not defined");
 
 	this.variables = [];
 	this.dependency = [];
@@ -20,34 +17,54 @@ function CatalogItem(id) {
 	this.CONTAINER_ORDER = 50;
 	this.CHECKBOX_ORDER = 10;
 
-	var attStr = attachment.getContentStream(ga.getUniqueValue());
-
-	this.createDefinitions = function() {
+	this.createDefinitions = function(settings) {
 
 		try {
-			if(!id)			
+
+			self.id = settings.catalog_item;
+
+			if(!self.id)			
 				throw "Catalog Item ID is not defined";
 
 			var catItemGR = new GlideRecord('sc_cat_item');
-			catItemGR.get(id);
+			catItemGR.get(self.id);
 
 			if(!catItemGR.isValidRecord())			
 				throw "Catalog Item does not exist";
 
-			self._getVariableTypes();
-			self._parseFormVariables();
-			self._defineVariableOrder();
-			self._createVariables();
+			//Create Variables
+			if(settings.variables) {
+				self._getVariableTypes();
+				self._parseFormVariables();
+				self._defineVariableOrder();
+				self._createVariables();
+				self._uniqueKeyContainer = [];
+			}
 
-			self._uniqueKeyContainer = [];
+			//Create User Criteria Dependencies
+			if(settings.user_criteria.length > 0)
+				self._createUserCriteria(settings.user_criteria);
+
+			//Create Task Definitions
+			if(settings.task_definitions)
+				self._createTaskDefinitions();
+
+			//Create UI Policy
+			if(settings.ui_policy)
+				self._createPolicy();
+
+			gs.info(output_result);
 
 		} catch(err) {
 			gs.info("Error: " + err);
 		}
-	};;
+	};
 
 	this._parseFormVariables = function() {
 
+		var attachment = new GlideSysAttachment();
+		var attStr = attachment.getContentStream(ga.getUniqueValue());
+		var ps = new sn_impex.GlideExcelParser();
 		ps.setSheetName("Form"); // XSLX Tab name
 		ps.parse(attStr);
 
@@ -56,7 +73,8 @@ function CatalogItem(id) {
 			type,
 			help_text,
 			mandatory,
-			choices;
+			choices,
+			default_value;
 
 		while(ps.next()) {
 
@@ -70,6 +88,8 @@ function CatalogItem(id) {
 			help_text = r["Help Text"] || "";
 			mandatory = r["Mandatory?"] == "Yes" ? (r["Dependency"] ? false : true) : false;
 			choices = self._parseChoices(type, r["Values for fields"]);
+			default_value = r["Default value"] || "";
+
 
 			// choices.forEach(function(c) {
 			// 	gs.info("Question: " + r["Question"]);
@@ -86,9 +106,12 @@ function CatalogItem(id) {
 				type: type,
 				mandatory: mandatory,
 				choices: choices,
+				default_value: default_value,
 				// dependency: self._parseDependency(r["Dependency"])
 			});
 		}
+
+		ps.close();
 
 		//Parse Chechbox Choices and define them as Variables
 		for (var gv = 0; gv < self.variables.length; gv++) {
@@ -119,10 +142,8 @@ function CatalogItem(id) {
 
 	this._createVariables = function() {
 
-		var output_result = "";
-
 		self.variables.forEach(function(v) {
-			output_result += "\n\n\tVariable: " + v.question_text;
+			output_result += "\n\nVariable: " + v.question_text;
 			output_result += "\n\tUnique Value: " + v.name;
 			if(v.help_text)
 				output_result += "\n\tHelp Text: " + v.help_text;
@@ -135,7 +156,7 @@ function CatalogItem(id) {
 			var variableGR = new GlideRecord('item_option_new');
 			variableGR.initialize();
 			variableGR.setValue('active', true);
-			variableGR.setValue('cat_item', id);
+			variableGR.setValue('cat_item', self.id);
 			variableGR.setValue('question_text', v.question_text);
 			variableGR.setValue('name', v.name);
 			variableGR.setValue('order', v.order);
@@ -144,6 +165,8 @@ function CatalogItem(id) {
 				variableGR.setValue('help_text', v.help_text);
 			variableGR.setValue('type', v.type);
 			variableGR.setValue('mandatory', v.mandatory);
+			if(v.default_value)
+				variableGR.setValue('default_value', v.default_value);
 
 			switch(v.type) {
 				case self.VARIABLE_TYPES["macro"]:
@@ -167,6 +190,10 @@ function CatalogItem(id) {
 				case self.VARIABLE_TYPES["listcollector"]:
 					output_result += "\n\tList table: " + v.choices[0];
 					output_result += "\n\tReference Qual: " + v.choices[1];
+
+					if(!v.choices)
+						break;
+
 					variableGR.setValue('list_table', v.choices[0]);
 					variableGR.setValue('reference_qual', v.choices[1]);
 					break;
@@ -182,8 +209,6 @@ function CatalogItem(id) {
 				self._createChoices(v.choices, varSysID);
 			}
 		});
-
-		gs.info(output_result);
 	};
 
 	this._createChoices = function(choices, id) {
@@ -368,13 +393,13 @@ function CatalogItem(id) {
 		return answer;
 	};
 
-	this.createPolicy = function() {
+	this._createPolicy = function() {
 		try {
-			if(!id)			
+			if(!self.id)			
 				throw "Catalog Item ID is not defined";
 
 			var catItemGR = new GlideRecord('sc_cat_item');
-			catItemGR.get(id);
+			catItemGR.get(self.id);
 
 			if(!catItemGR.isValidRecord())			
 				throw "Catalog Item does not exist";
@@ -416,7 +441,7 @@ function CatalogItem(id) {
 
 		var variableGR = new GlideRecord('item_option_new');
 		variableGR.addQuery('name', 'IN', listName.join(","));
-		variableGR.addQuery('cat_item', id);
+		variableGR.addQuery('cat_item', self.id);
 		variableGR.query();
 		while(variableGR.next()) {
 			keyContainer[variableGR.name] = variableGR.getUniqueValue();
@@ -456,7 +481,7 @@ function CatalogItem(id) {
 			policyGR.initialize();
 			policyGR.setValue("active", true);
 			policyGR.setValue("applies_to", "item");
-			policyGR.setValue("catalog_item", id);
+			policyGR.setValue("catalog_item", self.id);
 			policyGR.setValue("short_description", i);
 			policyGR.setValue("applies_catalog", true);
 			policyGR.setValue("applies_sc_task", true);
@@ -471,7 +496,7 @@ function CatalogItem(id) {
 
 				var policyActionGR = new GlideRecord("catalog_ui_policy_action");
 				policyActionGR.initialize();
-				policyActionGR.setValue("catalog_item", id);
+				policyActionGR.setValue("catalog_item", self.id);
 				policyActionGR.setValue("variable", name);
 				policyActionGR.setValue("catalog_variable", "IO:" + p[name]);
 				policyActionGR.setValue("visible", "true");
@@ -483,8 +508,136 @@ function CatalogItem(id) {
 		}
 
 	};
+
+	this._createUserCriteria = function(criteries) {
+
+		try {
+
+			var grMTOM = new GlideRecord('sc_cat_item_user_criteria_mtom');
+
+			for(var c = 0; c < criteries.length; c++) {
+				grMTOM.initialize();
+				grMTOM.setValue("sc_cat_item", self.id);
+				grMTOM.setValue("user_criteria", criteries[c]);
+				if(grMTOM.insert()) {
+					output_result += "\n\ncreateUserCriteria";
+					if(self.id)
+						output_result += "\n\tItem: " + self.id;
+					if(criteries[c])
+						output_result += "\n\tCriteria: " + criteries[c];
+				} else 
+					output_result += "\n\n[Failed] createUserCriteria: " + short_description;
+			}
+
+		} catch(ex) {
+			output_result += "\n\n[Exeption] createUserCriteria: " + ex;
+		}
+	};
+
+	this._createTaskDefinitions = function() {
+
+		try {
+			var attachment = new GlideSysAttachment();
+			var attStr = attachment.getContentStream(ga.getUniqueValue());
+			var ps = new sn_impex.GlideExcelParser();
+			ps.setSheetName("Task Information"); // XSLX Tab name
+			ps.parse(attStr);
+
+			var r,
+				type,
+				short_description,
+				description,
+				stage,
+				assignment_group;
+
+
+			var taskDefinitionGR = new GlideRecord('u_catalog_fulfillment_task');
+			var approvalPolicyGR = new GlideRecord('u_approval_policy');
+
+			while(ps.next()) {
+
+				r = ps.getRow();
+				type = r["Type"] || "";
+
+				if(!type)
+					continue;
+
+				switch(type){
+					case "Fulfillment":
+						short_description = r["Short Description"] || "";
+						description = r["Description"] || "";
+						stage = (r["Stage"] || "").toLowerCase();
+						assignment_group = self._getGroupIDByName(r["Assignment"]) || "";
+
+						if(short_description == "" || assignment_group == "")
+							continue;
+
+						taskDefinitionGR.initialize();
+						taskDefinitionGR.u_item = self.id;
+						taskDefinitionGR.u_task_name = short_description
+						taskDefinitionGR.u_description = description
+						taskDefinitionGR.u_stage = stage
+						taskDefinitionGR.u_assignment_group = assignment_group
+
+						if(taskDefinitionGR.insert()) {
+							output_result += "\n\nTaskDefinition: " + short_description;
+							if(short_description)
+								output_result += "\n\tShort Description: " + short_description;
+							if(description)
+								output_result += "\n\tDescription: " + description;
+							if(stage)
+								output_result += "\n\tStage: " + stage;
+							if(assignment_group)
+								output_result += "\n\tAssignment Group: " + assignment_group;
+						} else
+							output_result += "\n\n[Failed] TaskDefinition: " + short_description;
+
+						break;
+
+					case "Approval":
+						break;	
+				}
+			}
+
+			ps.close();
+
+		} catch(ex) {
+			output_result += "\n\n[Exeption] createTaskDefinitions: " + ex;
+		}
+
+	};
+
+	this._getGroupIDByName = function(name) {
+		try {
+			var groupGR = new GlideRecord('sys_user_group');
+			groupGR.addQuery('name', name);
+			groupGR.query();
+
+			if(groupGR.next())
+				return groupGR.sys_id + "";
+		} catch(ex) {
+			output_result += "\n\n[Exeption] getGroupIDByName: " + ex;
+		}
+	}
 }
 
+var cat_item_id = 'f9151c691b2277c0cd6298efbd4bcbe2';
+var catItemHandler = new CatalogItemUtils();
 
-var catItemHandler = new CatalogItem("7f40a5541bcd3b803e3c76e1dd4bcbf8");
-catItemHandler.createDefinitions();
+var settings = {
+	catalog_item: cat_item_id,
+	variables: true,
+	user_criteria: ['83f9a9c51be2b3c0cd6298efbd4bcbab'],
+	task_definitions: true,
+	ui_policy: false
+}
+
+// var settings = {
+// 	catalog_item: cat_item_id,
+// 	variables: false,
+// 	user_criteria: ['/*83f9a9c51be2b3c0cd6298efbd4bcbab*/'],
+// 	task_definitions: true,
+// 	ui_policy: false
+// }
+
+catItemHandler.createDefinitions(settings);
